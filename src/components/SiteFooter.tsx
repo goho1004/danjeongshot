@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BRAND } from "@/lib/brand";
+import { APP_VERSION, BRAND } from "@/lib/brand";
 import { bizField, getBusinessInfo } from "@/lib/business";
 
 export default function SiteFooter() {
@@ -12,7 +12,7 @@ export default function SiteFooter() {
           <div>
             <span className="font-display text-lg tracking-brand text-ink-700">{BRAND.sign}</span>
             <p className="mt-1 text-xs text-ink-400">
-              © {new Date().getFullYear()} · {BRAND.speed} · {BRAND.legal}
+              © {new Date().getFullYear()} · {BRAND.speed} · {BRAND.legal} · v{APP_VERSION}
             </p>
           </div>
           <nav className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-ink-400">

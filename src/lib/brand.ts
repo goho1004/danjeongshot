@@ -1,5 +1,10 @@
 /** 웹 간판·브랜드 카피 */
 
+import packageJson from "../../package.json";
+
+/** package.json version — 푸터·배포 표기 */
+export const APP_VERSION = packageJson.version as string;
+
 export const BRAND = {
   /** 헤더·히어로·푸터 간판 */
   sign: "증명사진 -단정-",
