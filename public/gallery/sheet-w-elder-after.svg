@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800" viewBox="0 0 200 267">
+  <rect width="200" height="267" fill="#f0f2f5"/>
+  <g transform="">
+    <ellipse cx="100" cy="250" rx="70" ry="40" fill="#f4f6f8"/>
+    <path d="M90 95 C60 70 55 140 70 175 C85 155 115 155 130 175 C145 140 140 70 110 95 Z" fill="#9a958c"/>
+    <path d="M100 108 C78 108 72 145 78 168 C88 188 112 188 122 168 C128 145 122 108 100 108 Z" fill="#d4b8a8"/>
+    <ellipse cx="88" cy="138" rx="4" ry="5" fill="#3a3030" opacity="0.55"/>
+    <ellipse cx="112" cy="138" rx="4" ry="5" fill="#3a3030" opacity="0.55"/>
+    <path d="M94 155 Q100 160 106 155" fill="none" stroke="#8a6a5a" stroke-width="1.2" opacity="0.5"/>
+  </g>
+  <rect x="0" y="240" width="200" height="27" fill="#0a0e14" opacity="0.72"/>
+  <text x="100" y="257" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#fff" font-weight="600">인화 · 후</text>
+</svg>

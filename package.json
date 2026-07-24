@@ -1,0 +1,43 @@
+{
+  "name": "danjeongshot",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "abuse-sim": "node scripts/abuse-sim.mjs",
+    "maint": "node scripts/maint/index.mjs",
+    "maint:health": "node scripts/maint/index.mjs health",
+    "maint:smoke": "node scripts/maint/index.mjs smoke",
+    "maint:download-loop": "node scripts/maint/index.mjs download-loop",
+    "maint:env-check": "node scripts/maint/index.mjs env-check",
+    "maint:check-debug": "node scripts/maint/index.mjs check-debug",
+    "maint:watermark": "node scripts/maint/index.mjs watermark",
+    "maint:flow-e2e": "node scripts/maint/index.mjs flow-e2e",
+    "maint:safari-multipart": "node scripts/maint/index.mjs safari-multipart",
+    "maint:gate": "node scripts/maint/index.mjs gate",
+    "maint:loop": "node scripts/maint/index.mjs loop"
+  },
+  "dependencies": {
+    "@google/genai": "^2.12.0",
+    "@tosspayments/tosspayments-sdk": "^2.7.1",
+    "next": "14.2.35",
+    "react": "^18",
+    "react-dom": "^18",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.35",
+    "playwright": "^1.49.1",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}

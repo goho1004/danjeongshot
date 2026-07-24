@@ -1,0 +1,13 @@
+# See https://help.github.com/articles/ignoring-files/
+node_modules
+.next
+out
+.env
+.env.local
+.env*.local
+*.log
+.DS_Store
+.vercel
+
+tsconfig.tsbuildinfo
+

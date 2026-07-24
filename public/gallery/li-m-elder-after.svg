@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800" viewBox="0 0 200 267">
+  <rect width="200" height="267" fill="#e6eaee"/>
+  <g transform="">
+    <ellipse cx="100" cy="250" rx="70" ry="40" fill="#eef1f4"/>
+    <path d="M95 100 C75 85 70 130 78 160 C100 145 120 145 142 160 C150 130 145 85 125 100 Z" fill="#8a8580"/>
+    <path d="M100 110 C80 110 74 148 80 172 C90 192 110 192 120 172 C126 148 120 110 100 110 Z" fill="#c9a890"/>
+    <ellipse cx="88" cy="138" rx="4" ry="5" fill="#3a3030" opacity="0.55"/>
+    <ellipse cx="112" cy="138" rx="4" ry="5" fill="#3a3030" opacity="0.55"/>
+    <path d="M94 155 Q100 160 106 155" fill="none" stroke="#8a6a5a" stroke-width="1.2" opacity="0.5"/>
+  </g>
+  <rect x="0" y="240" width="200" height="27" fill="#0a0e14" opacity="0.72"/>
+  <text x="100" y="257" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#fff" font-weight="600">링크드인 · 후</text>
+</svg>
