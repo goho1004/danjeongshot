@@ -55,9 +55,8 @@ export default function GalleryPage() {
               미모 보정이나 네컷 감성은 아니에요.
             </p>
             <p className="animate-fade mt-4 max-w-xl text-xs leading-relaxed text-ink-400">
-              아래는 구성·톤 예시입니다. 동의받은 실사 결과로 교체할 수 있게{" "}
-              <code className="rounded bg-white/70 px-1 py-0.5 text-[11px]">public/gallery</code>{" "}
-              경로만 바꿔 두면 됩니다. 여권·관공서 제출용은 아닙니다.
+              아래는 구성·톤 예시입니다. 실제 결과물은 업로드한 셀카와 선택한 용도에 따라
+              달라집니다. 여권·관공서 제출용은 아닙니다.
             </p>
           </div>
         </section>
