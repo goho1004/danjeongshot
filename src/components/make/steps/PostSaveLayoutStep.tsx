@@ -103,14 +103,15 @@ export default function PostSaveLayoutStep({
               onClick={saveReadyFile}
               className="w-full rounded-xl border border-accent/40 bg-white py-2.5 text-sm font-semibold text-accent-deep"
             >
-              방금 준비된 PNG 저장
+              사진에 저장
             </button>
+            <p className="text-center text-[11px] text-ink-500">공유 창 → 「이미지 저장」</p>
             <a
               href={saveReady.url}
               download={saveReady.filename}
-              className="block w-full text-center text-[11px] text-ink-500 underline"
+              className="block w-full text-center text-[11px] text-ink-400 underline"
             >
-              링크로 저장
+              파일로 받기 (백업)
             </a>
             <EmailDeliverForm
               disabled={downloading || !!extraBusyId || layoutBuying}
@@ -153,14 +154,15 @@ export default function PostSaveLayoutStep({
                 onClick={saveLayoutReadyFile}
                 className="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-white"
               >
-                레이아웃 저장 · PNG
+                사진에 저장 · 레이아웃
               </button>
+              <p className="text-center text-[11px] text-ink-500">공유 창 → 「이미지 저장」</p>
               <a
                 href={layoutSaveReady.url}
                 download={layoutSaveReady.filename}
                 className="block w-full rounded-xl border border-accent/40 bg-white py-2.5 text-center text-sm font-semibold text-accent-deep"
               >
-                링크로 레이아웃 저장
+                파일로 받기 (백업)
               </a>
               <EmailDeliverForm
                 disabled={layoutBuying}

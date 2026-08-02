@@ -55,8 +55,8 @@ export default function PrintGuidePage() {
       <section className="rounded-xl border border-ink-200 bg-ink-50/80 px-4 py-3 text-sm text-ink-700">
         <p className="font-semibold text-ink-900">폰에서 파일을 못 찾을 때</p>
         <p className="mt-1 text-xs text-ink-600">
-          만들기에서 <strong>이메일로 받기</strong>를 쓰면 메일함에서 PNG를 열어{" "}
-          {PRINTING_BOX.name}에 올릴 수 있어요. 기기에 저장과 병행됩니다.
+          만들기에서 <strong>사진에 저장</strong>(공유 창 → 이미지 저장)이 제일 쉽고, 안 되면{" "}
+          <strong>이메일로 받기</strong>로 메일함에서 열어 {PRINTING_BOX.name}에 올리세요.
         </p>
       </section>
 

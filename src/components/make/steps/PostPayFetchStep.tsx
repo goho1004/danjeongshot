@@ -54,7 +54,8 @@ export default function PostPayFetchStep({
       <div>
         <p className="text-sm font-semibold text-accent-deep">6. 사진 받기</p>
         <p className="mt-1 text-xs text-ink-500">
-          「이 컷 받기」를 누르면 클린 PNG를 준비하고 저장까지 이어가요. 막히면 다음 단계에서 「파일로 저장」을 눌러 주세요.
+          「이 컷 받기」를 누르면 클린 PNG를 준비하고 「사진에 저장」으로 이어가요. 공유 창에서
+          「이미지 저장」만 누르세요. 막히면 이메일로 받으세요.
         </p>
         <p className="mt-1.5 text-[11px] leading-relaxed text-ink-400">
           받지 않으셔도 자동 환불되지는 않아요. 마음에 드는 컷을 받아 두시고, 아쉬우면 아래 다시

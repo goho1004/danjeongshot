@@ -5,7 +5,7 @@ import {
   generatePhotoSheet,
   getPrintSize,
 } from "@/lib/photoSheet";
-import { savePngBlob } from "@/lib/download/savePng";
+import { saveHowMessage, savePngBlob } from "@/lib/download/savePng";
 import type { Shot } from "@/lib/make/types";
 import type { MakeStudioState } from "@/hooks/make/useMakeStudioState";
 
@@ -44,7 +44,7 @@ export function useLayoutDownload(state: MakeStudioState) {
     const slot = "layout";
     if (!paid || !orderId || !unlockToken || !downloaded || layoutBuying) return;
     if (!savedOnce) {
-      fail(slot, "먼저 위 「파일로 저장」으로 PNG를 저장해 주세요.");
+      fail(slot, "먼저 위 「사진에 저장」또는 이메일로 PNG를 받아 주세요.");
       return;
     }
     if (!shot.unlocked && shot.id !== primaryShotId && !extraPaidIds.includes(shot.id)) {
@@ -99,7 +99,9 @@ export function useLayoutDownload(state: MakeStudioState) {
         url,
         label: downloadSize.label,
       });
-      setDownloadOk(`${downloadSize.label} 레이아웃이 준비됐어요. 「레이아웃 저장」을 눌러 주세요.`);
+      setDownloadOk(
+        `${downloadSize.label} 레이아웃 준비됨 · 「사진에 저장」을 누르고 「이미지 저장」만 선택하세요.`
+      );
     } catch (e) {
       const msg =
         e instanceof Error && e.message.includes("이미지 로드")
@@ -133,7 +135,9 @@ export function useLayoutDownload(state: MakeStudioState) {
       const filename = `danjeongshot-layout-${size.id}.png`;
       const url = URL.createObjectURL(blob);
       setLayoutSaveReady({ blob, filename, url, label: size.label });
-      setDownloadOk(`${size.label} 레이아웃 준비됨 · 「레이아웃 저장」을 눌러 주세요.`);
+      setDownloadOk(
+        `${size.label} 레이아웃 준비됨 · 「사진에 저장」→ 「이미지 저장」`
+      );
     } catch (e) {
       fail(
         slot,
@@ -151,14 +155,13 @@ export function useLayoutDownload(state: MakeStudioState) {
     clearFail();
     try {
       const how = await savePngBlob(layoutSaveReady.blob, layoutSaveReady.filename);
-      if (how === "tab") {
-        setDownloadOk("레이아웃을 새 탭에서 열었어요. 길게 눌러 저장해 주세요.");
-      } else {
-        setDownloadOk(`${layoutSaveReady.label} 레이아웃 저장을 요청했어요.`);
-      }
+      setDownloadOk(saveHowMessage(how, "layout"));
     } catch (e) {
-      if (e instanceof Error && e.name === "AbortError") return;
-      setDownloadOk("레이아웃 자동 저장이 막혔어요. 아래 링크를 눌러 주세요.");
+      if (e instanceof Error && e.name === "AbortError") {
+        setDownloadOk("저장을 취소했어요. 「사진에 저장」또는 이메일을 다시 눌러 주세요.");
+        return;
+      }
+      setDownloadOk("레이아웃 저장이 막혔어요. 「사진에 저장」또는 이메일을 이용해 주세요.");
     }
   };
 

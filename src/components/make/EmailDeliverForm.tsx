@@ -9,7 +9,7 @@ type EmailDeliverFormProps = {
   onSend: (email: string) => Promise<{ ok: boolean; message: string }>;
 };
 
-/** 기기에 저장과 병행 · 폰에서 파일 못 찾을 때 */
+/** 사진에 저장과 병행 · 증빙·백업 · 폰에서 파일 못 찾을 때 */
 export default function EmailDeliverForm({
   disabled,
   busyLabel = "보내는 중…",
@@ -40,8 +40,8 @@ export default function EmailDeliverForm({
     <div className="rounded-xl border border-ink-200 bg-white p-3 space-y-2">
       <p className="text-xs font-semibold text-ink-800">이메일로 받기</p>
       <p className="text-[11px] leading-relaxed text-ink-500">
-        폰에서 파일을 못 찾을 때 · 메일함에서 열어 {PRINTING_BOX.name}에 올리세요. (
-        {PRINT_GUIDE.label})
+        사진에 저장이 안 될 때 · 메일함에서 열어 {PRINTING_BOX.name}에 올리세요. (
+        {PRINT_GUIDE.label} · 제공 개시 기록)
       </p>
       <div className="flex flex-col gap-2 sm:flex-row">
         <input

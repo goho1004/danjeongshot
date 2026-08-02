@@ -2,7 +2,7 @@
 
 import { b64ToBytes, bytesToBlob } from "@/lib/download/bytes";
 import { fetchCleanPng } from "@/lib/download/fetchClean";
-import { savePngBlob, savePngFromBase64 } from "@/lib/download/savePng";
+import { saveHowMessage, savePngBlob, savePngFromBase64 } from "@/lib/download/savePng";
 import type { Shot } from "@/lib/make/types";
 import type { MakeStudioState } from "@/hooks/make/useMakeStudioState";
 
@@ -109,24 +109,16 @@ export function useDownload(state: MakeStudioState, purposeId: string) {
       setSaveReady({ blob: result.blob, filename, url: objectUrl });
       setSavedOnce(false);
 
-      // 같은 클릭 흐름에서 저장까지 시도 — 막히면 「파일로 저장」으로 이어감
+      // 같은 클릭에서 공유 시트(사진에 저장)까지 시도
       try {
         const how = await savePngBlob(result.blob, filename);
         setSavedOnce(true);
-        if (how === "tab") {
-          setDownloadOk(
-            "새 탭에서 열렸어요. 이미지를 길게 눌러 저장한 뒤, 필요하면 아래 「파일로 저장」도 써 주세요."
-          );
-        } else if (how === "share") {
-          setDownloadOk("공유·저장했어요. 아래에서 인화용 레이아웃을 받을 수 있어요.");
-        } else {
-          setDownloadOk("저장을 요청했어요. 다운로드 폴더를 확인한 뒤 인화로 이어 가세요.");
-        }
+        setDownloadOk(saveHowMessage(how, "png"));
       } catch (e) {
         if (e instanceof Error && e.name === "AbortError") {
-          setDownloadOk("저장을 취소했어요. 아래 「파일로 저장」을 다시 눌러 주세요.");
+          setDownloadOk("저장을 취소했어요. 「사진에 저장」을 다시 누르거나 이메일로 받으세요.");
         } else {
-          setDownloadOk("파일이 준비됐어요. 아래 「파일로 저장」을 눌러 주세요.");
+          setDownloadOk("파일이 준비됐어요. 「사진에 저장」또는 이메일로 받으세요.");
         }
       }
     } catch (e) {
@@ -147,19 +139,13 @@ export function useDownload(state: MakeStudioState, purposeId: string) {
     try {
       const how = await savePngBlob(saveReady.blob, saveReady.filename);
       setSavedOnce(true);
-      if (how === "tab") {
-        setDownloadOk("새 탭에서 열렸어요. 이미지를 길게 눌러 저장한 뒤 아래 인화로 이어 가세요.");
-      } else if (how === "share") {
-        setDownloadOk("공유·저장했어요. 아래에서 인화용 레이아웃을 받을 수 있어요.");
-      } else {
-        setDownloadOk("저장을 요청했어요. 다운로드 폴더를 확인한 뒤 인화 레이아웃으로 이어 가세요.");
-      }
+      setDownloadOk(saveHowMessage(how, "png"));
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") {
-        setDownloadOk("저장을 취소했어요. 다시 「파일로 저장」을 눌러 주세요.");
+        setDownloadOk("저장을 취소했어요. 「사진에 저장」을 다시 누르거나 이메일로 받으세요.");
         return;
       }
-      setDownloadOk("자동 저장이 막혔어요. 「링크를 눌러 저장」을 이용해 주세요.");
+      setDownloadOk("자동 저장이 막혔어요. 「사진에 저장」또는 이메일을 이용해 주세요.");
     }
   };
 
