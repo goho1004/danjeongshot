@@ -21,7 +21,7 @@ function env(key: string, fallback = ""): string {
   return (process.env[key] || "").trim() || fallback;
 }
 
-/** 미등록이면 빈 칸 — 푸터에서 ‘등록 후 기재’로 표시 */
+/** 미등록이면 빈 칸 — 푸터에서 베타 고지로 묶음 */
 export function getBusinessInfo(): BusinessInfo {
   return {
     tradeName: env("NEXT_PUBLIC_BIZ_TRADE_NAME", "증명사진 -단정-"),
@@ -34,15 +34,20 @@ export function getBusinessInfo(): BusinessInfo {
     phone: env("NEXT_PUBLIC_BIZ_PHONE"),
     vatNote: env(
       "NEXT_PUBLIC_BIZ_VAT_NOTE",
-      "표시 금액은 부가세(10%) 포함가입니다. 과세 매출은 전액 신고합니다."
+      "표시 금액은 부가세(10%) 포함 예정입니다. 사업자 등록 후 과세 매출을 신고합니다."
     ),
     taxInvoiceNote: env(
       "NEXT_PUBLIC_BIZ_TAX_INVOICE_NOTE",
-      "세금계산서·현금영수증은 사업자등록 완료 후 발행합니다. 필요 시 주문번호와 함께 이메일로 요청해 주세요."
+      "세금계산서·현금영수증은 사업자등록 완료 후 발행합니다."
     ),
   };
 }
 
 export function bizField(value: string, emptyLabel = "등록 후 기재"): string {
   return value.trim() || emptyLabel;
+}
+
+/** 사업자 핵심 칸이 비어 있으면 베타(등록 전) */
+export function isBizPreRegistration(b: BusinessInfo = getBusinessInfo()): boolean {
+  return !b.bizNo.trim() || !b.mailOrderNo.trim();
 }

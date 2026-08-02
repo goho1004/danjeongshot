@@ -18,10 +18,9 @@ export default function PreviewStep({
 }: PreviewStepProps) {
   return (
     <div>
-      <h2 className="text-sm font-semibold text-ink-700">5. 미리보기</h2>
+      <h2 className="text-sm font-semibold text-ink-700">5. 첫 컷</h2>
       <p className="mt-1 text-xs text-ink-500">
-        아래쪽에만 옅은 표시가 있어요. 깨끗한 PNG는{" "}
-        <strong className="text-ink-700">결제 후 다운로드</strong>에서 받습니다
+        결제 후 만든 컷입니다. 아래에서 확인한 뒤 「이 컷 받기」로 PNG를 저장하세요
         {mock ? " · MOCK" : ""}
       </p>
       <div
@@ -41,7 +40,7 @@ export default function PreviewStep({
               selectedShotId === shot.id ? "rounded-xl ring-2 ring-accent/40" : ""
             }`}
           >
-            <WatermarkFrame src={shot.imageUrl} locked={!shot.unlocked} />
+            <WatermarkFrame src={shot.imageUrl} locked={false} />
             <p className="mt-1.5 px-1 text-xs font-medium text-ink-700">{shot.label}</p>
           </button>
         ))}

@@ -1,14 +1,17 @@
-/** 결제 후 유저 단계 — UI는 현재 단계만 렌더 */
+/** 유저 단계 — UI는 현재 단계만 렌더
+ *  pay-first: 셀카 → 팩·결제 → 첫 컷 → 받기
+ */
 
 export type MakeFlowStep =
   | "setup"
-  | "preview"
   | "checkout"
+  | "paidFirst"
   | "paidFetch"
   | "paidSave"
   | "postSave";
 
 export type MakeFlowInput = {
+  hasSelfie: boolean;
   hasPreview: boolean;
   paid: boolean;
   downloaded: boolean;
@@ -16,9 +19,9 @@ export type MakeFlowInput = {
 };
 
 export function resolveMakeFlowStep(input: MakeFlowInput): MakeFlowStep {
-  const { hasPreview, paid, downloaded, savedOnce } = input;
-  if (!hasPreview) return "setup";
-  if (!paid) return "preview";
+  const { hasSelfie, hasPreview, paid, downloaded, savedOnce } = input;
+  if (!paid) return hasSelfie ? "checkout" : "setup";
+  if (!hasPreview) return "paidFirst";
   if (!downloaded) return "paidFetch";
   if (!savedOnce) return "paidSave";
   return "postSave";

@@ -1,16 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import ShootTips from "@/components/ShootTips";
+import { PRINTING_BOX } from "@/lib/printingBox";
 import PurposeUploadStep from "@/components/make/steps/PurposeUploadStep";
 import PreviewStep from "@/components/make/steps/PreviewStep";
 import CheckoutStep from "@/components/make/steps/CheckoutStep";
+import FirstCutButton from "@/components/make/steps/FirstCutButton";
 import PostPayFetchStep from "@/components/make/steps/PostPayFetchStep";
 import PostPaySaveStep from "@/components/make/steps/PostPaySaveStep";
 import PostSaveLayoutStep from "@/components/make/steps/PostSaveLayoutStep";
 import { useMakeStudioState } from "@/hooks/make/useMakeStudioState";
 import { useSessionRestore } from "@/hooks/make/useSessionRestore";
+import { usePersistPaidSession } from "@/hooks/make/usePersistPaidSession";
 import { useGenerate } from "@/hooks/make/useGenerate";
 import { useCheckout } from "@/hooks/make/useCheckout";
 import { useDownload } from "@/hooks/make/useDownload";
@@ -34,6 +38,33 @@ export default function MakeStudio() {
 
   const state = useMakeStudioState(initialPurpose);
   useSessionRestore(state);
+  usePersistPaidSession(state);
+
+  useEffect(() => {
+    const raw =
+      params.get("partner") ||
+      params.get("partnerCode") ||
+      params.get("ref") ||
+      "";
+    const code = raw.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 32);
+    if (!code) return;
+    state.setPartnerCode(code);
+    try {
+      localStorage.setItem("djs_partner", code);
+    } catch {
+      /* ignore */
+    }
+  }, [params, state.setPartnerCode]);
+
+  useEffect(() => {
+    if (state.partnerCode) return;
+    try {
+      const saved = localStorage.getItem("djs_partner");
+      if (saved) state.setPartnerCode(saved);
+    } catch {
+      /* ignore */
+    }
+  }, [state.partnerCode, state.setPartnerCode]);
 
   const deviceFp = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -112,6 +143,7 @@ export default function MakeStudio() {
   }, [state.includeLayout, state.selectedUrl, state.printSizeId, state.downloaded]);
 
   const flowStep = resolveMakeFlowStep({
+    hasSelfie: !!state.selfie,
     hasPreview: state.hasPreview,
     paid: state.paid,
     downloaded: state.downloaded,
@@ -139,34 +171,20 @@ export default function MakeStudio() {
         setSubjectLook={state.setSubjectLook}
         subjectSeason={state.subjectSeason}
         setSubjectSeason={state.setSubjectSeason}
+        extraPresetIds={state.extraPresetIds}
+        toggleExtraPreset={state.toggleExtraPreset}
+        extraCustom={state.extraCustom}
+        setExtraCustom={state.setExtraCustom}
         selfie={state.selfie}
         inputRef={state.inputRef}
         onFile={onFile}
         processFile={processFile}
         error={state.error}
         errorAt={state.errorAt}
-        hasPreview={state.hasPreview}
-        paid={state.paid}
-        packId={state.packId}
-        packBullets={state.pack.bullets}
-        busyKind={state.busyKind}
-        generate={generate}
-        previewLeft={state.previewLeft}
-        loadingLines={lines}
-        loadingIdx={loadingIdx}
       />
 
-      {state.hasPreview && (
-        <PreviewStep
-          shots={state.shots}
-          selectedShotId={state.selectedShotId}
-          setSelectedShotId={state.setSelectedShotId}
-          setPreviewVault={state.setPreviewVault}
-          mock={state.mock}
-        />
-      )}
-
-      {flowStep === "preview" && (
+      {/* 결제창을 초록 버튼보다 위에 — 보이던 그 카드 */}
+      {!state.paid && (
         <CheckoutStep
           nudgeIdx={nudgeIdx}
           packId={state.packId}
@@ -180,6 +198,33 @@ export default function MakeStudio() {
           busyKind={state.busyKind}
           error={state.error}
           errorAt={state.errorAt}
+          hasSelfie={!!state.selfie}
+          paymentMode={
+            process.env.NEXT_PUBLIC_PAYMENT_MODE === "toss" ? "toss" : "sandbox"
+          }
+        />
+      )}
+
+      {!state.hasPreview && (
+        <FirstCutButton
+          paid={state.paid}
+          selfie={!!state.selfie}
+          busyKind={state.busyKind}
+          generate={generate}
+          error={state.error}
+          errorAt={state.errorAt}
+          loadingLines={lines}
+          loadingIdx={loadingIdx}
+        />
+      )}
+
+      {state.hasPreview && (
+        <PreviewStep
+          shots={state.shots}
+          selectedShotId={state.selectedShotId}
+          setSelectedShotId={state.setSelectedShotId}
+          setPreviewVault={state.setPreviewVault}
+          mock={state.mock}
         />
       )}
 
@@ -200,6 +245,11 @@ export default function MakeStudio() {
           runPaidRegen={runPaidRegen}
           error={state.error}
           errorAt={state.errorAt}
+          subjectLook={state.subjectLook}
+          extraPresetIds={state.extraPresetIds}
+          toggleExtraPreset={state.toggleExtraPreset}
+          extraCustom={state.extraCustom}
+          setExtraCustom={state.setExtraCustom}
         />
       )}
 
@@ -251,10 +301,25 @@ export default function MakeStudio() {
         id="kiosk-guide"
         className="rounded-2xl border border-ink-100 bg-white/70 p-5 text-sm text-ink-700"
       >
-        <h2 className="font-display text-lg font-semibold text-ink-950">키오스크 안내</h2>
+        <h2 className="font-display text-lg font-semibold text-ink-950">포토박스 · 인화</h2>
         <p className="mt-2 text-xs text-ink-500">
-          배송은 없어요. 레이아웃 PNG를 받아 편의점·사진관 4×6으로 뽑으세요.
+          배송은 없어요. 레이아웃 PNG를 받아{" "}
+          <a
+            href={PRINTING_BOX.storeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-accent-deep underline"
+          >
+            {PRINTING_BOX.name}
+          </a>
+          에서 4×6으로 뽑으세요.
         </p>
+        <Link
+          href="/photobox"
+          className="mt-3 inline-flex text-sm font-semibold text-studio-deep hover:underline"
+        >
+          포토박스 안내 · 위치 찾기 →
+        </Link>
       </section>
 
       <div id="shoot-tips-full">

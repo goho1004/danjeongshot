@@ -5,7 +5,11 @@ human_title: 단정샷 유지보수·모듈분리 (2026-07-24)
 > 사이트: https://danjeongshot.vercel.app  
 > 코드: `D:\Memento\projects\danjeongshot`  
 > 정본 문서: `docs/MAINTENANCE.md`  
-> 상태: **maint:gate GREEN** · 디버그 잔여 **0건**
+> 상태: **BETA OPEN** (사업자 전) · 결제=sandbox 시뮬레이션 · 실생성 `MOCK_GENERATE=0`
+
+**BETA Done:** 베타 뱃지·푸터 고지·체크아웃 시뮬레이션 문구 · 링크 공유 가능.  
+**다음(베타 후):** 사업자·통신판매 기재 · 토스 라이브 · 커스텀 도메인.  
+**동결:** `docs/BETA_FREEZE.md` (라대리·전자책·하네스 확장 ✗)
 
 ---
 
@@ -141,9 +145,22 @@ npm run maint:gate -- --base https://danjeongshot.vercel.app
 | `PAYMENT_MODE` | `sandbox` (현재) 또는 `toss` |
 | `PREVIEW_QUOTA_SECRET` | vault 서명. 인스턴스마다 같아야 함 |
 | `MAINT_SMOKE_SECRET` | maint gate용 한도 우회 |
+| `UPSTASH_REDIS_REST_URL` | 생성 캡 공유(동시접속). Production·Preview 설정됨 |
+| `UPSTASH_REDIS_REST_TOKEN` | 위와 쌍. **값 문서에 적지 말 것** |
 | `NEXT_PUBLIC_BIZ_*` | 푸터 사업자 |
 
 키가 바뀌면 다운로드가 410으로 깨집니다. Vercel Production 값을 함부로 바꾸지 마세요.
+
+### 6-A. Upstash (동시접속 캡) — 2026-08-02
+
+- **역할:** `/api/generate` 분당·일일 캡을 Vercel 인스턴스끼리 공유. 없으면 서버마다 따로 셈.
+- **유료 필수 ✗** · 무료 Redis면 베타 충분.
+- **상태:** Vercel Production/Preview에 URL·TOKEN 넣음 · 배포 반영됨.
+- **임시 DB Claim (필수):**  
+  https://upstash.com/start-redis/console/a940c466-3503-4c7c-ad88-c6c8cdcfc8ab  
+  → 로그인 후 **Claim** 안 하면 **약 3일 후 만료**. Claim 하면 유지.
+- **코드:** `src/lib/generateGate.ts` · `src/lib/durableQuota.ts`
+- **실패 UX:** API 원문 금지 → 「사진관이 바빠요」 (`userFacingErrors.ts`)
 
 ---
 

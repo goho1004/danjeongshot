@@ -23,8 +23,28 @@ export const GALLERY_TABS: { id: PurposeId | "all"; label: string }[] = [
   { id: "sheet", label: "인화" },
 ];
 
-/** 전후 9세트 — 실사 톤 샘플 (생성 이미지). */
+/** 전후 샘플 — 실사용 컷 + 톤 샘플. */
 export const GALLERY_ITEMS: GalleryItem[] = [
+  {
+    id: "real-w-mid",
+    purposeId: "resume",
+    look: "woman",
+    season: "mid",
+    title: "이력서 · 여성 · 중년",
+    note: "셀카 → 단정 프로필",
+    beforeSrc: "/gallery/real-w-mid-before.png",
+    afterSrc: "/gallery/real-w-mid-after.png",
+  },
+  {
+    id: "real-m-mid",
+    purposeId: "resume",
+    look: "man",
+    season: "mid",
+    title: "이력서 · 남성 · 중년",
+    note: "셀카 → 단정 정장 톤",
+    beforeSrc: "/gallery/real-m-mid-before.png",
+    afterSrc: "/gallery/real-m-mid-after.png",
+  },
   {
     id: "resume-w-young",
     purposeId: "resume",

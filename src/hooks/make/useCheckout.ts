@@ -1,7 +1,7 @@
 "use client";
 
 import { loadTossPayments } from "@tosspayments/tosspayments-sdk";
-import { CHECKOUT_SESSION_KEY } from "@/lib/make/types";
+import { CHECKOUT_SESSION_KEY, RESTORE_PAID_KEY } from "@/lib/make/types";
 import type { PackId } from "@/lib/purposes";
 import type { MakeStudioState } from "@/hooks/make/useMakeStudioState";
 
@@ -13,15 +13,13 @@ export function useCheckout(
   subjectSeason: string
 ) {
   const {
-    hasPreview,
-    selectedUrl,
-    selectedShot,
-    previewVault,
-    previewAssetId,
+    selfie,
     packId,
+    partnerCode,
     shots,
     selectedShotId,
-    selfie,
+    previewVault,
+    previewAssetId,
     orderTicket,
     clearFail,
     fail,
@@ -39,25 +37,30 @@ export function useCheckout(
   } = state;
 
   const checkout = async () => {
-    if (!selectedUrl && !hasPreview) {
-      fail("checkout", "미리보기를 먼저 확인해 주세요.");
-      return;
-    }
-    if (!previewVault && !previewAssetId && !selectedShot?.vault) {
-      fail("checkout", "미리보기 세션이 없습니다. 첫 컷을 다시 만들어 주세요.");
+    if (!selfie) {
+      fail("checkout", "셀카를 먼저 업로드해 주세요.");
       return;
     }
     clearFail();
     setPaying(true);
     try {
+      // 새 주문 — 이전 결제 복원 세션은 치움
+      try {
+        const { clearRestorePaid } = await import("@/lib/sessionHeavy");
+        await clearRestorePaid(RESTORE_PAID_KEY);
+      } catch {
+        /* ignore */
+      }
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           purposeId,
           packId,
+          // pay-first: 미리보기 자산 없이 주문 (있으면 호환으로만 전달)
           previewAssetId,
-          previewVault: selectedShot?.vault || previewVault,
+          previewVault,
+          partnerCode: partnerCode || undefined,
         }),
       });
       const data = await res.json();
@@ -83,7 +86,7 @@ export function useCheckout(
           packId: (data.packId as PackId) || packId,
           purposeId,
           previewAssetId: (data.previewAssetId as string) || previewAssetId,
-          previewVault: selectedShot?.vault || previewVault,
+          previewVault: previewVault,
           shots,
           selectedShotId,
           subjectLook,

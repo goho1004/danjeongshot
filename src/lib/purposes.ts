@@ -45,11 +45,11 @@ export function parseSubjectSeason(raw: unknown): SubjectSeasonId {
 
 const LOOK_PROMPT: Record<SubjectLookId, string> = {
   as_photo:
-    " Keep the subject's apparent gender presentation exactly as in the photo. Never masculinize a woman or feminize a man. Clothing must match that presentation — never put a woman in a men's suit or necktie.",
+    " Gender lock: match the photo's gender presentation exactly. If she reads as a woman (including short hair or senior), keep her female — do not masculinize. Outfit must match: women get blouse / soft knit / women's jacket; never a men's suit, necktie, or masculine padded shoulders.",
   woman:
-    " The subject is a woman. Keep her clearly female: feminine facial structure, hair, and proportions. Professional attire for a Korean woman: neat blouse, soft knit, or light women's blazer — NOT a men's suit, NOT a necktie, NOT masculine tailoring.",
+    " Gender lock (binding): SHE is a woman — use she/her. Keep clearly female face, hair, and body cues. Outfit must be feminine professional Korean attire: collared blouse, soft knit, cardigan, women's blazer with soft lapels, or women's two-piece (jacket + skirt/pants). Forbidden: men's dark suit, necktie, bow tie, men's dress shirt alone, masculine boxy tailoring, short male haircut.",
   man:
-    " The subject is a man. Keep him clearly male. Professional attire may be a clean shirt, sweater, or men's blazer if needed — subtle, not flashy.",
+    " Gender lock (binding): HE is a man — use he/him. Keep clearly male. Outfit may be a clean shirt, sweater, or men's blazer — subtle, not flashy.",
 };
 
 const SEASON_PROMPT: Record<SubjectSeasonId, string> = {
@@ -60,8 +60,12 @@ const SEASON_PROMPT: Record<SubjectSeasonId, string> = {
   mid:
     " Keep a mature mid-career age feel. Slight maturity is fine; do not turn them into a teenager or a very elderly person.",
   elder:
-    " The subject is older / senior. Preserve gray hair, soft wrinkles, and age. Do NOT rejuvenate into a young face. Do NOT put them in a young man's suit look.",
+    " Age lock: older / senior. Preserve gray or white hair, soft wrinkles, and age. Do NOT rejuvenate. For a senior woman, prefer soft blouse or knit — never default to a young male business-suit look.",
 };
+
+/** woman + elder 조합 — 라이트 모델의 ‘노인=남성 정장’ 편향 차단 */
+const WOMAN_ELDER_LOCK =
+  " Hard case (binding): elderly Korean woman headshot. She remains an older woman. Clothing: soft-colored blouse and/or women's jacket / cardigan / women's two-piece. Absolutely forbidden: navy or black men's suit, necktie, masculine shoulder pads, male haircut, male facial structure.";
 
 export const PURPOSES: Purpose[] = [
   {
@@ -71,7 +75,7 @@ export const PURPOSES: Purpose[] = [
     cta: "이력서로 시작",
     bgDefault: "white",
     prompt:
-      "Professional Korean resume headshot. Soft even studio lighting. Plain pure white or very light gray background. Only tidy clothing if the outfit is too casual — keep changes subtle and gender-appropriate. Preserve the person's exact facial identity, skin texture, hairline, age cues, and proportions. No beauty filter, no skin smoothing, no face reshape, no makeup enhancement, no gender swap. Natural skin. Photorealistic. Neutral calm expression.",
+      "Professional Korean resume headshot. Soft even studio lighting. Plain pure white or very light gray background. Tidy clothing only if too casual — prefer blouse/knit for women, shirt for men; do NOT default everyone to a dark men's suit. Preserve exact facial identity, skin texture, hairline, age cues, and proportions. No beauty filter, no skin smoothing, no face reshape, no makeup enhancement, no gender swap. Natural skin. Photorealistic. Neutral calm expression.",
   },
   {
     id: "linkedin",
@@ -80,7 +84,7 @@ export const PURPOSES: Purpose[] = [
     cta: "프로필로 시작",
     bgDefault: "gray",
     prompt:
-      "Professional LinkedIn-style headshot. Soft natural studio light. Solid light gray backdrop. Smart casual clothing appropriate to the subject's gender — restrained, not flashy. Preserve exact facial identity, age, and natural skin texture. No beauty filter, no skin smoothing, no face reshape, no gender swap. Photorealistic. Friendly but professional expression.",
+      "Professional LinkedIn-style headshot. Soft natural studio light. Solid light gray backdrop. Smart casual by gender: women — blouse, soft knit, or light women's blazer; men — shirt or sweater. Never force a men's suit+tie. Preserve exact facial identity, age, and natural skin texture. No beauty filter, no skin smoothing, no face reshape, no gender swap. Photorealistic. Friendly but professional expression.",
   },
   {
     id: "sheet",
@@ -89,7 +93,7 @@ export const PURPOSES: Purpose[] = [
     cta: "인화용으로 시작",
     bgDefault: "white",
     prompt:
-      "ID-style portrait for photo-lab print tiling (not government passport claim). Front-facing, even lighting, plain white background, head and upper shoulders. Preserve exact facial identity, gender presentation, and age. No beauty filter. Photorealistic.",
+      "ID-style portrait for photo-lab print tiling (not government passport claim). Front-facing, even lighting, plain white background, head and upper shoulders. Preserve exact facial identity, gender presentation, and age. Clothing gender-appropriate — never put a woman in a men's suit. No beauty filter. Photorealistic.",
   },
 ];
 
@@ -98,24 +102,184 @@ export function getPurpose(id: string): Purpose | undefined {
 }
 
 export const IDENTITY_SUFFIX =
-  " Critical: same person as the photo — same gender presentation, same age band, same face. Do not beautify, idealize, gender-swap, or dress a woman in men's formalwear.";
+  " Critical: same person as the photo — same gender presentation, same age band, same face. Do not beautify, idealize, or gender-swap. Never dress a woman (including elderly women) in men's formalwear, necktie, or masculine suit.";
 
 /** 결제 후 추가 컷용 — 같은 lite, 각도·조명만 미세 변형 (프로 모델 아님) */
 export const STUDIO_VARIANT_HINTS = [
-  " Slightly different soft key light from camera-left. Keep framing head-and-shoulders. Same identity, gender, and age.",
-  " Slightly higher camera angle, still professional. Even softer fill. Same identity, no beautify, no gender swap.",
+  " Slightly different soft key light from camera-left. Keep framing head-and-shoulders. Same identity, gender, age, and clothing gender rules.",
+  " Slightly higher camera angle, still professional. Even softer fill. Same identity — no beautify, no gender swap, no men's suit on a woman.",
 ] as const;
+
+/** attire = 의상(단일 선택), misc = 기타(복수 가능) */
+export type ExtraPresetGroup = "attire" | "misc";
+
+export type ExtraPromptPreset = {
+  id: string;
+  label: string;
+  text: string;
+  group: ExtraPresetGroup;
+  /** 이 look일 때 숨김 (예: 여성분 → 수염) */
+  hideForLooks?: SubjectLookId[];
+};
+
+/** 만들기 2번 아래 — 짧은 추가 요청 (프리셋 + 직접입력) */
+export const EXTRA_PROMPT_PRESETS: ExtraPromptPreset[] = [
+  {
+    id: "blouse",
+    label: "블라우스",
+    text: "Wear a neat women's blouse (soft collar, soft tone).",
+    group: "attire",
+  },
+  {
+    id: "twopiece",
+    label: "여성 투피스",
+    text: "Wear a women's two-piece (soft jacket with skirt or trousers).",
+    group: "attire",
+  },
+  {
+    id: "dress",
+    label: "단정 원피스",
+    text: "Wear a neat dress or one-piece top (feminine, professional).",
+    group: "attire",
+  },
+  {
+    id: "glasses",
+    label: "안경 유지",
+    text: "Keep glasses if present in the photo.",
+    group: "misc",
+  },
+  {
+    id: "smile",
+    label: "미소 살짝",
+    text: "Keep a natural slight smile.",
+    group: "misc",
+  },
+  {
+    id: "no_tie",
+    label: "넥타이 없음",
+    text: "No necktie. Women: blouse or women's jacket only.",
+    group: "misc",
+  },
+  {
+    id: "keep_beard",
+    label: "수염 유지",
+    text: "Keep natural facial hair / beard shadow; do not erase.",
+    group: "misc",
+    hideForLooks: ["woman"],
+  },
+  {
+    id: "hair",
+    label: "머리 정돈만",
+    text: "Do not change hairstyle; only light tidy.",
+    group: "misc",
+  },
+];
+
+export const EXTRA_PROMPT_MAX = 120;
+
+const PRESET_BY_ID = new Map(EXTRA_PROMPT_PRESETS.map((p) => [p.id, p]));
+
+/** 직접입력만 길이 제한. 프리셋은 잘리지 않음. */
+export function sanitizeExtraPrompt(raw: unknown): string {
+  if (typeof raw !== "string") return "";
+  const t = raw.replace(/[\u0000-\u001F\u007F]/g, "").trim();
+  if (!t) return "";
+  return t.slice(0, EXTRA_PROMPT_MAX);
+}
+
+export function parseExtraPresetIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const ids: string[] = [];
+  let attirePicked: string | null = null;
+  for (const item of raw) {
+    if (typeof item !== "string") continue;
+    const p = PRESET_BY_ID.get(item);
+    if (!p) continue;
+    if (p.group === "attire") {
+      attirePicked = p.id;
+      continue;
+    }
+    if (!ids.includes(p.id)) ids.push(p.id);
+  }
+  if (attirePicked) ids.unshift(attirePicked);
+  return ids;
+}
+
+/** 프리셋 전문 + 직접입력(최대 120자). 프리셋은 truncate 하지 않음. */
+export function composeExtraPrompt(
+  presetIds: unknown,
+  custom?: unknown
+): string {
+  const ids = parseExtraPresetIds(presetIds);
+  const fromPresets = ids
+    .map((id) => PRESET_BY_ID.get(id)?.text)
+    .filter((t): t is string => Boolean(t))
+    .join(" ");
+  const customPart = sanitizeExtraPrompt(custom);
+  return [fromPresets, customPart].filter(Boolean).join(" ").trim();
+}
+
+/** 의상 칩은 하나만 — 토글 시 다른 attire 제거 */
+export function toggleExtraPresetId(
+  prev: string[],
+  id: string
+): string[] {
+  const p = PRESET_BY_ID.get(id);
+  if (!p) return prev;
+  if (prev.includes(id)) return prev.filter((x) => x !== id);
+  if (p.group === "attire") {
+    return [
+      id,
+      ...prev.filter((x) => PRESET_BY_ID.get(x)?.group !== "attire"),
+    ];
+  }
+  return [...prev, id];
+}
+
+export function visibleExtraPresets(look: SubjectLookId): ExtraPromptPreset[] {
+  return EXTRA_PROMPT_PRESETS.filter(
+    (p) => !p.hideForLooks?.includes(look)
+  );
+}
 
 export function buildPrompt(
   purposeId: string,
   variantIndex?: number,
-  subject?: { look?: SubjectLookId; season?: SubjectSeasonId }
+  subject?: {
+    look?: SubjectLookId;
+    season?: SubjectSeasonId;
+    /** 이미 composeExtraPrompt 된 문자열, 또는 레거시 한 줄 */
+    extra?: string;
+    extraPresetIds?: string[];
+    extraCustom?: string;
+  }
 ): string {
   const p = getPurpose(purposeId) ?? PURPOSES[0];
   const look = subject?.look ?? "as_photo";
   const season = subject?.season ?? "as_photo";
   let base =
     p.prompt + IDENTITY_SUFFIX + LOOK_PROMPT[look] + SEASON_PROMPT[season];
+  if (look === "woman" && season === "elder") {
+    base += WOMAN_ELDER_LOCK;
+  }
+  const hasStructuredExtra =
+    (subject?.extraPresetIds?.length ?? 0) > 0 ||
+    Boolean(subject?.extraCustom?.trim());
+  const extra = hasStructuredExtra
+    ? composeExtraPrompt(subject?.extraPresetIds, subject?.extraCustom)
+    : typeof subject?.extra === "string"
+      ? subject.extra.trim().slice(0, 600)
+      : "";
+  if (extra) {
+    // 의상 추가요청은 secondary로 두면 라이트가 무시하고 남성 정장으로 회귀함
+    base +=
+      ` User attire/style request (binding for clothing only — never change identity, gender, age, or face): ${extra}`;
+  }
+  // 모델은 끝문장을 더 잘 따름 — 성별·의상 금지를 마지막에 한 번 더
+  if (look === "woman" || look === "as_photo") {
+    base +=
+      " Final check: if the subject is a woman, output must show a woman in feminine professional clothes — never a men's suit or necktie.";
+  }
   if (variantIndex === undefined || variantIndex < 0) return base;
   const hint = STUDIO_VARIANT_HINTS[variantIndex % STUDIO_VARIANT_HINTS.length];
   return base + hint;
@@ -187,7 +351,7 @@ export function packAmountKrw(id: PackId): number {
 export const sheetAddonKrw = 0;
 
 export const TRUST_CHIPS = [
-  "1분 완성",
+  "베타 · 약 1분",
   "받은 뒤에는 환불이 어려워요",
   "올린 사진·결과물은 저장하지 않아요",
   "여권·관공서 제출용은 아니에요",
@@ -197,7 +361,7 @@ export const TRUST_CHIPS = [
 export const POSITIONING = {
   oneLiner: "셀카 올리면 약 1분. 후보를 잔뜩 고르는 대신, 닮은 한 장.",
   vsStudio: "스튜디오·헤어메이크 전에 바로 쓸 수 있는 단정 증명사진이에요.",
-  vsCrowd: "후보 사진을 많이 고르는 서비스가 아닙니다. 미리 보고, 한 장을 받습니다.",
+  vsCrowd: "후보 사진을 많이 고르는 서비스가 아닙니다. 결제 후 닮은 한 장을 받습니다.",
   notFor: "여권·신분증·관공서 제출용은 만들거나 보장하지 않습니다.",
 } as const;
 
@@ -211,7 +375,7 @@ export const LOADING_LINES = [
 ] as const;
 
 export const PAY_NUDGE_LINES = [
-  "미리보기가 괜찮다면 기본·플러스 중 골라 결제해 주세요. 받은 뒤에는 환불이 어렵습니다.",
+  "팩을 고르고 결제하면 첫 컷이 열립니다. 받은 뒤에는 환불이 어렵습니다.",
   "한 장이면 기본, 인화까지면 플러스예요. 마음에 안 들면 결제 후 다시 만들기·A/S가 있어요.",
   "후보를 잔뜩 고르는 구성은 아니에요. 닮은 한 장, 필요할 때만 인화 규격입니다.",
 ] as const;

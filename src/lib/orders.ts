@@ -9,6 +9,13 @@ import {
   randomBytes,
 } from "crypto";
 import type { PackId } from "@/lib/purposes";
+import type {
+  AgentType,
+  PayoutCycle,
+  RefundLag,
+  TaxMode,
+} from "@/lib/agents";
+import { appendLedger } from "@/lib/agentLedger";
 
 export type { PackId };
 
@@ -22,6 +29,8 @@ export type Order = {
   unlockToken: string;
   createdAt: number;
   previewAssetId: string | null;
+  /** 결제 후 컷이 클라이언트에 전달된 시각(화면 열람·캡처 가능 시점) */
+  cutDeliveredAt: number | null;
   downloadedAt: number | null;
   redoUsed: number;
   asvUsed: number;
@@ -33,6 +42,15 @@ export type Order = {
   layoutPaidSizeIds: string[];
   /** 전 사이즈 패키지 결제 */
   layoutPackPaid: boolean;
+  /** 대리점 귀속 (결제 시점 스냅샷) */
+  partnerCode: string | null;
+  ratePctSnapshot: number | null;
+  agentTypeSnapshot: AgentType | null;
+  taxModeSnapshot: TaxMode | null;
+  payoutCycleSnapshot: PayoutCycle | null;
+  holdCapPctSnapshot: number | null;
+  holdTargetPctSnapshot: number | null;
+  refundLagSnapshot: RefundLag | null;
 };
 
 export const REDO_LIMIT = 1;
@@ -50,7 +68,7 @@ function secretKey(): Buffer {
 }
 
 type SealBody = {
-  v: 5;
+  v: 7;
   id: string;
   purposeId: string;
   packId: PackId;
@@ -59,6 +77,7 @@ type SealBody = {
   paid: boolean;
   createdAt: number;
   previewAssetId: string | null;
+  cutDeliveredAt: number | null;
   downloadedAt: number | null;
   redoUsed: number;
   asvUsed: number;
@@ -66,6 +85,14 @@ type SealBody = {
   layoutFreeUsed: boolean;
   layoutPaidSizeIds: string[];
   layoutPackPaid: boolean;
+  partnerCode: string | null;
+  ratePctSnapshot: number | null;
+  agentTypeSnapshot: AgentType | null;
+  taxModeSnapshot: TaxMode | null;
+  payoutCycleSnapshot: PayoutCycle | null;
+  holdCapPctSnapshot: number | null;
+  holdTargetPctSnapshot: number | null;
+  refundLagSnapshot: RefundLag | null;
 };
 
 function normalizePackId(
@@ -78,7 +105,7 @@ function normalizePackId(
 
 function sealPayload(o: Omit<Order, "unlockToken">): string {
   const body: SealBody = {
-    v: 5,
+    v: 7,
     id: o.id,
     purposeId: o.purposeId,
     packId: o.packId === "plus" ? "plus" : "basic",
@@ -87,6 +114,7 @@ function sealPayload(o: Omit<Order, "unlockToken">): string {
     paid: o.paid,
     createdAt: o.createdAt,
     previewAssetId: o.previewAssetId,
+    cutDeliveredAt: o.cutDeliveredAt ?? null,
     downloadedAt: o.downloadedAt,
     redoUsed: o.redoUsed,
     asvUsed: o.asvUsed,
@@ -94,6 +122,14 @@ function sealPayload(o: Omit<Order, "unlockToken">): string {
     layoutFreeUsed: !!o.layoutFreeUsed,
     layoutPaidSizeIds: o.layoutPaidSizeIds ?? [],
     layoutPackPaid: !!o.layoutPackPaid,
+    partnerCode: o.partnerCode ?? null,
+    ratePctSnapshot: o.ratePctSnapshot ?? null,
+    agentTypeSnapshot: o.agentTypeSnapshot ?? null,
+    taxModeSnapshot: o.taxModeSnapshot ?? null,
+    payoutCycleSnapshot: o.payoutCycleSnapshot ?? null,
+    holdCapPctSnapshot: o.holdCapPctSnapshot ?? null,
+    holdTargetPctSnapshot: o.holdTargetPctSnapshot ?? null,
+    refundLagSnapshot: o.refundLagSnapshot ?? null,
   };
   const plain = Buffer.from(JSON.stringify(body), "utf8");
   const iv = randomBytes(12);
@@ -143,9 +179,20 @@ export function unsealOrder(token: string): Order | null {
       v: number;
       layoutPaidKeys?: string[];
     };
-    if (data.v < 1 || data.v > 5 || !data.id) return null;
+    if (data.v < 1 || data.v > 7 || !data.id) return null;
     if (Date.now() - (data.createdAt || 0) > 1000 * 60 * 60 * 24 * 7) return null;
     const layout = normalizeLayoutFields(data as unknown as Record<string, unknown>);
+    const legacy = data as SealBody & {
+      cutDeliveredAt?: number | null;
+      partnerCode?: string | null;
+      ratePctSnapshot?: number | null;
+      agentTypeSnapshot?: AgentType | null;
+      taxModeSnapshot?: TaxMode | null;
+      payoutCycleSnapshot?: PayoutCycle | null;
+      holdCapPctSnapshot?: number | null;
+      holdTargetPctSnapshot?: number | null;
+      refundLagSnapshot?: RefundLag | null;
+    };
     const base: Omit<Order, "unlockToken"> = {
       id: data.id,
       purposeId: data.purposeId,
@@ -155,6 +202,7 @@ export function unsealOrder(token: string): Order | null {
       paid: !!data.paid,
       createdAt: data.createdAt,
       previewAssetId: data.previewAssetId ?? null,
+      cutDeliveredAt: legacy.cutDeliveredAt ?? null,
       downloadedAt: data.downloadedAt ?? null,
       redoUsed: Number(data.redoUsed) || 0,
       asvUsed: Number(data.asvUsed) || 0,
@@ -162,6 +210,21 @@ export function unsealOrder(token: string): Order | null {
         ? data.extraPaidShotIds.map(String)
         : [],
       ...layout,
+      partnerCode: legacy.partnerCode ?? null,
+      ratePctSnapshot:
+        legacy.ratePctSnapshot != null ? Number(legacy.ratePctSnapshot) : null,
+      agentTypeSnapshot: legacy.agentTypeSnapshot ?? null,
+      taxModeSnapshot: legacy.taxModeSnapshot ?? null,
+      payoutCycleSnapshot: legacy.payoutCycleSnapshot ?? null,
+      holdCapPctSnapshot:
+        legacy.holdCapPctSnapshot != null
+          ? Number(legacy.holdCapPctSnapshot)
+          : null,
+      holdTargetPctSnapshot:
+        legacy.holdTargetPctSnapshot != null
+          ? Number(legacy.holdTargetPctSnapshot)
+          : null,
+      refundLagSnapshot: legacy.refundLagSnapshot ?? null,
     };
     return { ...base, unlockToken: token };
   } catch {
@@ -199,6 +262,14 @@ export function createSandboxOrder(input: {
   previewAssetId?: string | null;
   layoutPaidSizeIds?: string[];
   layoutFreeUsed?: boolean;
+  partnerCode?: string | null;
+  ratePctSnapshot?: number | null;
+  agentTypeSnapshot?: AgentType | null;
+  taxModeSnapshot?: TaxMode | null;
+  payoutCycleSnapshot?: PayoutCycle | null;
+  holdCapPctSnapshot?: number | null;
+  holdTargetPctSnapshot?: number | null;
+  refundLagSnapshot?: RefundLag | null;
 }): Order {
   const id = `ord_${randomBytes(8).toString("hex")}`;
   const packId = input.packId === "plus" ? "plus" : "basic";
@@ -212,6 +283,7 @@ export function createSandboxOrder(input: {
     paid: false,
     createdAt: Date.now(),
     previewAssetId: input.previewAssetId ?? null,
+    cutDeliveredAt: null,
     downloadedAt: null,
     redoUsed: 0,
     asvUsed: 0,
@@ -219,6 +291,14 @@ export function createSandboxOrder(input: {
     layoutFreeUsed: !!input.layoutFreeUsed || included.length > 0,
     layoutPaidSizeIds: [...included],
     layoutPackPaid: false,
+    partnerCode: input.partnerCode ?? null,
+    ratePctSnapshot: input.ratePctSnapshot ?? null,
+    agentTypeSnapshot: input.agentTypeSnapshot ?? null,
+    taxModeSnapshot: input.taxModeSnapshot ?? null,
+    payoutCycleSnapshot: input.payoutCycleSnapshot ?? null,
+    holdCapPctSnapshot: input.holdCapPctSnapshot ?? null,
+    holdTargetPctSnapshot: input.holdTargetPctSnapshot ?? null,
+    refundLagSnapshot: input.refundLagSnapshot ?? null,
   };
   return cache({ ...base, unlockToken: "" });
 }
@@ -235,8 +315,22 @@ export function markPaid(id: string, ticket?: string): Order | undefined {
   let o = g.__djsOrders!.get(id);
   if (!o && ticket) o = unsealOrder(ticket) ?? undefined;
   if (!o || o.id !== id) return undefined;
+  const wasPaid = o.paid;
   o.paid = true;
-  return cache(o);
+  const next = cache(o);
+  if (!wasPaid && next.partnerCode && next.ratePctSnapshot != null) {
+    appendLedger({
+      id: `led_${next.id}`,
+      orderId: next.id,
+      partnerCode: next.partnerCode,
+      amountKrw: next.amountKrw,
+      ratePct: next.ratePctSnapshot,
+      agentType: next.agentTypeSnapshot || "indiv",
+      taxMode: next.taxModeSnapshot || "withhold",
+      paidAt: Date.now(),
+    });
+  }
+  return next;
 }
 
 export function verifyUnlock(orderId: string, token: string): boolean {
@@ -319,26 +413,51 @@ export function markLayoutPackPaid(orderId: string, token: string): Order | null
   return cache(o);
 }
 
+export function markCutDelivered(orderId: string, token: string): Order | null {
+  const o = resolveOrder(orderId, token);
+  if (!o || !o.paid) return null;
+  if (!o.cutDeliveredAt) o.cutDeliveredAt = Date.now();
+  return cache(o);
+}
+
 export function refundEligibility(orderId: string, token?: string): {
   ok: boolean;
   reason: string;
   downloadedAt: number | null;
+  cutDeliveredAt: number | null;
 } {
   const o = (token && resolveOrder(orderId, token)) || g.__djsOrders!.get(orderId);
-  if (!o) return { ok: false, reason: "주문을 찾을 수 없습니다.", downloadedAt: null };
-  if (!o.paid) return { ok: false, reason: "결제되지 않은 주문입니다.", downloadedAt: null };
+  if (!o) {
+    return {
+      ok: false,
+      reason: "주문을 찾을 수 없습니다.",
+      downloadedAt: null,
+      cutDeliveredAt: null,
+    };
+  }
+  if (!o.paid) {
+    return {
+      ok: false,
+      reason: "결제되지 않은 주문입니다.",
+      downloadedAt: null,
+      cutDeliveredAt: null,
+    };
+  }
   if (o.downloadedAt) {
     return {
       ok: false,
       reason:
         "이미 다운로드하셨습니다. 품질이 아쉬우면 결제 후 다시 만들기를 이용해 주세요.",
       downloadedAt: o.downloadedAt,
+      cutDeliveredAt: o.cutDeliveredAt,
     };
   }
   return {
     ok: true,
-    reason: "다운로드 전 · 시스템 오류 등 제한적 사유에 한해 환불 검토 가능",
+    reason:
+      "다운로드 전 · 자동 환불 아님 · 화면 캡처·저장으로 이용 후 환불 청구는 어뷰징으로 거절될 수 있음 · 시스템 오류만 사유 제출·관리자 승인",
     downloadedAt: null,
+    cutDeliveredAt: o.cutDeliveredAt,
   };
 }
 

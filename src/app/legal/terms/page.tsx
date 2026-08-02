@@ -29,29 +29,35 @@ export default function TermsPage() {
       </section>
 
       <section>
-        <h2 className="text-base font-semibold text-ink-950">3. 미리보기와 결제</h2>
+        <h2 className="text-base font-semibold text-ink-950">3. 결제와 첫 컷</h2>
         <p className="mt-2">
-          결제 전 <strong>워터마크가 포함된 미리보기</strong>를 제공합니다. 이는 전자상거래법상
-          디지털콘텐츠의 <strong>시험 사용</strong>에 해당하도록 설계되었습니다. 이용자는 미리보기를
-          확인한 뒤 결제합니다.
+          본 서비스는 <strong>결제 전 무료 미리보기(워터마크 포함)를 제공하지 않습니다</strong>.
+          이용자는 용도·셀카·팩을 선택한 뒤 결제하고, 결제 완료 후 첫 컷 생성·열람이 가능합니다.
         </p>
       </section>
 
       <section>
-        <h2 className="text-base font-semibold text-ink-950">4. 제공 개시 · 다운로드</h2>
+        <h2 className="text-base font-semibold text-ink-950">4. 제공 개시 · 다운로드 · 화면 캡처</h2>
         <p className="mt-2">
-          결제 후 워터마크가 없는 클린 PNG를 다운로드(저장)하면{" "}
-          <strong>디지털콘텐츠 제공이 개시</strong>된 것으로 봅니다. 제공 개시 후의 청약철회·환불은
-          「환불·청약철회」 정책에 따릅니다.
+          결제 후 생성된 컷이 화면에 표시되거나, 클린 PNG를 다운로드(저장)하면{" "}
+          <strong>디지털콘텐츠 제공이 개시</strong>된 것으로 봅니다. 화면 캡처·촬영으로 이미지를
+          확보한 뒤 「다운로드하지 않았다」고 환불을 청구하는 행위는 금지되며, 환불 거절·이용 제한
+          사유가 될 수 있습니다. 상세는 「환불·청약철회」 정책을 따릅니다. 결제 후 다시 만들기·A/S
+          기회를 정책 범위에서 제공할 수 있습니다.
         </p>
       </section>
 
       <section>
         <h2 className="text-base font-semibold text-ink-950">5. 인화</h2>
         <p className="mt-2">
-          실물 배송은 하지 않습니다. 인화용 레이아웃 PNG를 받아 편의점·마트·사진관 등의{" "}
-          <strong>포토 키오스크·인화 서비스</strong>에서 이용자가 직접 출력할 수 있습니다. 인화
-          비용·품질·기기 장애는 해당 매장의 책임 영역입니다. 특정 키오스크와의 전용 연동은 현재
+          실물 배송은 하지 않습니다. 인화용 레이아웃 PNG를 받아{" "}
+          <strong>프린팅박스 등 포토 키오스크·인화 서비스</strong>에서 이용자가 직접 출력할 수
+          있습니다. 안내는 사이트{" "}
+          <a href="/photobox" className="underline">
+            /photobox
+          </a>
+          를 참고하세요. 인화 비용·품질·기기 장애는 해당 매장·서비스의 책임 영역입니다. 특정
+          키오스크와의 전용 연동은 현재
           제공하지 않습니다.
         </p>
       </section>
@@ -68,8 +74,8 @@ export default function TermsPage() {
         <h2 className="text-base font-semibold text-ink-950">7. 면책</h2>
         <p className="mt-2">
           AI 생성 결과는 입력 사진·모델 특성에 따라 달라질 수 있으며, “본인과 완전히 동일”을
-          보장하지 않습니다. 미리보기 확인 후 결제·다운로드한 결과에 대한 주관적 불만족은 환불
-          사유가 되지 않으며, 정책상 재생성 기회를 제공할 수 있습니다.
+          보장하지 않습니다. 결제·다운로드한 결과에 대한 주관적 불만족은 환불 사유가 되지 않으며,
+          정책상 재생성 기회를 제공할 수 있습니다.
         </p>
       </section>
 

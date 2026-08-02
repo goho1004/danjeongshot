@@ -55,7 +55,7 @@ const LEGAL = {
   terms: "/legal/terms",
   privacy: "/legal/privacy",
   help: "/help",
-  make: "/make",
+  make: "/make?resume=1",
 } as const;
 
 const RULES: Rule[] = [
@@ -102,12 +102,12 @@ const RULES: Rule[] = [
   {
     intent: "refund_before_download",
     confidence: "medium",
-    keywords: ["아직 다운", "다운로드 안", "안 받았", "결제만"],
+    keywords: ["아직 다운", "다운로드 안", "안 받았", "결제만", "자동 환불"],
     refundHint: "maybe",
     actions: ["offer_regen", "auto_reply"],
     reply:
-      "환불보다 먼저 「다시 만들기」또는 「A/S 서비스」를 권합니다. 다른 밝은 셀카로 올려 다시 뽑으면 만족도가 높아지는 경우가 많아요. 만들기 화면에서 바로 가능합니다. 시스템 오류로 아예 못 받으신 경우만 주문번호로 환불을 검토합니다. 팁: /help#shoot-tips",
-    agentNote: "변심·품질 환불 → A/S 우선. 오류만 환불.",
+      "다운로드하지 않으셨다고 자동 환불되지는 않아요. 먼저 만들기에서 「이 컷 받기」로 받아 보시고, 아쉬우면 다시 만들기·A/S를 이용해 주세요. (/make?resume=1) 시스템 오류로 정말 못 받으신 경우만 주문번호·사유를 남겨 주시면 운영자가 검토 후 승인 시에만 환불합니다. 팁: /help#shoot-tips",
+    agentNote: "미다운로드≠자동환불. 받기·A/S 유도 → 사유+관리자승인.",
   },
   {
     intent: "quality_likeness",
@@ -136,8 +136,8 @@ const RULES: Rule[] = [
     refundHint: "n/a",
     actions: ["auto_reply"],
     reply:
-      "화면에는 다운로드 직전까지 워터마크가 남아 있어요. 「PNG 다운로드」를 누르시면 워터마크 없는 파일이 저장됩니다. 결제만으로는 화면 워터마크가 바로 사라지지 않습니다.",
-    agentNote: "정상 동작 설명. 버그 아님.",
+      "지금은 결제 후 첫 컷에 워터마크를 넣지 않습니다. 화면에 글자가 보이면 새로고침 후 「이 컷 받기」로 PNG를 저장해 주세요. 예전 미리보기 화면을 보고 계신 경우일 수 있어요.",
+    agentNote: "pay-first · 워터마크 폐지 후 안내.",
   },
   {
     intent: "download_fail",
@@ -152,12 +152,24 @@ const RULES: Rule[] = [
   {
     intent: "kiosk_how",
     confidence: "high",
-    keywords: ["키오스크", "인화", "편의점", "뽑", "4x6", "4×6", "레이아웃", "인쇄"],
+    keywords: [
+      "키오스크",
+      "인화",
+      "편의점",
+      "뽑",
+      "4x6",
+      "4×6",
+      "레이아웃",
+      "인쇄",
+      "프린팅박스",
+      "포토박스",
+      "프박",
+    ],
     refundHint: "n/a",
     actions: ["auto_reply"],
     reply:
-      "실물 배송은 없습니다. 인화용 레이아웃 PNG를 받은 뒤 편의점·마트·사진관 「포토/사진 인쇄」에서 용지 4×6으로 출력하세요. 인화비는 매장 부담이며, 기기 품질 문제는 매장 문의입니다. 만들기 화면 하단 안내를 참고해 주세요.",
-    agentNote: "배송·지정 키오스크 약속 금지.",
+      "실물 배송은 없습니다. 인화용 레이아웃 PNG를 받은 뒤 프린팅박스(포토박스)에서 용지 4×6으로 출력하세요. 위치: https://printingbox.kr/store · 안내: /photobox . 인화비·기기 품질은 매장·프린팅박스 영역입니다.",
+    agentNote: "배송·지정 키오스크 약속 금지. 프린팅박스 링크만.",
   },
   {
     intent: "payment_fail",
@@ -278,9 +290,12 @@ export function resolveRefundWithOrder(
   if (!order.downloadedAt && order.paid && triage.refundHint === "maybe") {
     return {
       ...triage,
-      refundHint: "likely",
-      actions: ["check_order_refund", "escalate_human"],
-      agentNote: `${triage.agentNote} | 미다운로드·결제됨 → 환불 검토 가능`,
+      refundHint: "maybe",
+      actions: ["offer_regen", "auto_reply", "escalate_human"],
+      reply:
+        triage.reply ||
+        "미다운로드는 자동 환불이 아닙니다. 「이 컷 받기」·다시 만들기를 먼저 이용해 주세요. (/make?resume=1) 오류로 제공이 불가할 때만 사유를 남겨 주시면 운영자 승인 후 환불합니다.",
+      agentNote: `${triage.agentNote} | 미다운로드·결제됨 → 받기 유도 · 자동환불 ✗ · 승인제`,
     };
   }
 
@@ -319,16 +334,20 @@ export function resolveRefundWithOrder(
 
 export const CS_FAQ = [
   {
-    q: "미리보기가 안 돼요 / 한도",
-    a: "결제 전 미리보기는 기기당 하루 제한이 있습니다. 재접속만으로 초기화되지 않으며, 같은 사진 반복도 막힙니다. 미리보기에는 옅은 표시만 들어가고, 클린 PNG는 결제 후 다운로드에서만 받을 수 있습니다.",
+    q: "첫 컷이 안 열려요 / 결제",
+    a: "무료 미리보기는 없습니다. 팩을 고르고 결제한 뒤 「4. 첫 컷 보기」가 활성화됩니다. 결제 후 만든 컷은 워터마크 없이 확인하고, PNG는 「이 컷 받기」로 저장합니다.",
   },
   {
     q: "결제는 했는데 화면에 워터마크가 있어요",
-    a: "정상입니다. 다운로드 버튼을 눌러야 클린 PNG가 저장되고, 그때 환불이 불가해집니다.",
+    a: "지금은 결제 후 첫 컷에 워터마크를 넣지 않습니다. 「이 컷 받기」로 PNG를 저장해 주세요. 미다운로드는 자동 환불이 아닙니다.",
+  },
+  {
+    q: "다운로드 안 하면 자동 환불인가요?",
+    a: "아니요. 자동 환불되지 않습니다. 먼저 「이 컷 받기」·다시 만들기·A/S를 이용해 주세요. 환불은 사유 제출 후 운영자 승인 시에만 됩니다.",
   },
   {
     q: "환불해 주세요",
-    a: "품질 불만은 환불보다 「다시 만들기」·「A/S 서비스」(다른 셀카 가능)를 먼저 이용해 주세요. 다운로드 후에는 환불이 불가합니다. 중복결제·시스템 오류만 예외 검토합니다.",
+    a: "품질 불만은 환불보다 「이 컷 받기」·「다시 만들기」·「A/S」를 먼저 이용해 주세요. 다운로드 후에는 환불이 불가합니다. 오류·중복결제만 사유를 남기시면 운영자가 검토·승인 후 환불합니다.",
   },
   {
     q: "안 닮아요 / 마음에 안 들어요",

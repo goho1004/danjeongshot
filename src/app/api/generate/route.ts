@@ -1,26 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
-import { buildPrompt, getPurpose, parseSubjectLook, parseSubjectSeason } from "@/lib/purposes";
+import {
+  buildPrompt,
+  getPurpose,
+  parseExtraPresetIds,
+  parseSubjectLook,
+  parseSubjectSeason,
+  sanitizeExtraPrompt,
+} from "@/lib/purposes";
 import {
   canRunAsv,
   canRunRedo,
   markAsv,
+  markCutDelivered,
   markRedo,
   putOrder,
   resolveOrder,
 } from "@/lib/orders";
-import {
-  gatePreviewGenerate,
-  previewQuotaConfig,
-  writePreviewCookie,
-} from "@/lib/previewQuota";
-import { burnSubtleWatermark } from "@/lib/watermark";
 import {
   bindPreviewToOrder,
   replaceCleanAsset,
   storePreviewAsset,
 } from "@/lib/previewAssets";
 import { sealPreviewVault } from "@/lib/previewVault";
+import { gatePaidGenerate } from "@/lib/generateGate";
+import {
+  STUDIO_BUSY,
+  STUDIO_RETRY,
+  toUserFacingGenerateError,
+} from "@/lib/userFacingErrors";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
@@ -31,7 +39,12 @@ type ModelResult =
 
 type Stage = "preview" | "redo" | "asv";
 
-function mockPngDataUrl(label: string): string {
+function cleanDataUrl(png: Buffer): string {
+  return `data:image/png;base64,${png.toString("base64")}`;
+}
+
+async function mockCleanPng(label: string): Promise<Buffer> {
+  const { default: sharp } = await import("sharp");
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800">
     <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
       <stop stop-color="#d8efe9"/><stop offset="1" stop-color="#f4f6f9"/>
@@ -40,19 +53,10 @@ function mockPngDataUrl(label: string): string {
     <text x="50%" y="46%" text-anchor="middle" font-family="sans-serif" font-size="28" fill="#0f4a3f">단정샷 MOCK</text>
     <text x="50%" y="54%" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#5a6578">${label}</text>
   </svg>`;
-  const b64 = Buffer.from(svg).toString("base64");
-  return `data:image/svg+xml;base64,${b64}`;
-}
-
-async function mockAsPng(label: string): Promise<{ previewDataUrl: string; cleanPng: Buffer }> {
-  // SVG → PNG via sharp path inside burnSubtleWatermark
-  const dataUrl = mockPngDataUrl(label);
   try {
-    return await burnSubtleWatermark(dataUrl);
+    return await sharp(Buffer.from(svg)).png().toBuffer();
   } catch {
-    // sharp가 SVG를 못 읽으면 최소 PNG 생성
-    const { default: sharp } = await import("sharp");
-    const cleanPng = await sharp({
+    return sharp({
       create: {
         width: 600,
         height: 800,
@@ -62,7 +66,6 @@ async function mockAsPng(label: string): Promise<{ previewDataUrl: string; clean
     })
       .png()
       .toBuffer();
-    return burnSubtleWatermark(cleanPng);
   }
 }
 
@@ -82,16 +85,6 @@ function parseImage(imageBase64: string): { rawBase64: string; mimeType: string 
 function parseStage(raw: unknown): Stage {
   if (raw === "redo" || raw === "asv") return raw;
   return "preview";
-}
-
-function jsonWithQuota(
-  body: Record<string, unknown>,
-  init: { status?: number },
-  quota?: { count: number; day: string; fpHash?: string }
-): NextResponse {
-  const res = NextResponse.json(body, init);
-  if (quota) writePreviewCookie(res, quota);
-  return res;
 }
 
 export async function POST(req: NextRequest) {
@@ -117,48 +110,56 @@ export async function POST(req: NextRequest) {
 
     const { rawBase64, mimeType } = parseImage(imageBase64);
 
-    let previewQuota: { count: number; day: string; fpHash?: string } | undefined;
+    // pay-first: 무료 미리보기 생성 금지 — 결제된 주문만 첫 컷/재생성
     if (stage === "preview") {
-      const gate = await gatePreviewGenerate(req, rawBase64, {
-        challengeToken: String(body.challengeToken ?? ""),
-        turnstileToken: String(body.turnstileToken ?? ""),
-      });
-      if (!gate.ok) {
+      const order = resolveOrder(orderId, unlockToken);
+      if (!order?.paid) {
         return NextResponse.json(
           {
-            error: gate.error,
-            code: gate.code,
+            error: "팩을 고르고 결제한 뒤 첫 컷을 만들 수 있어요.",
+            code: "PAY_REQUIRED",
             payHint: true,
-            challengeRequired: !!gate.challengeRequired,
-            abuseLevel: gate.abuseLevel,
-            dayCount: gate.dayCount,
-            burstCount: gate.burstCount,
-            makeHint: "결제 후 다시 만들기·A/S를 이용하세요.",
-            quota: previewQuotaConfig(),
           },
-          {
-            status: gate.status,
-            headers: {
-              ...(gate.retryAfterSec
-                ? { "Retry-After": String(gate.retryAfterSec) }
-                : {}),
-              ...(gate.abuseLevel
-                ? { "X-Djs-Abuse-Level": gate.abuseLevel }
-                : {}),
-            },
-          }
+          { status: 402 }
         );
       }
-      previewQuota = { count: gate.nextCount, day: gate.day, fpHash: gate.fpHash };
     }
 
     if (stage === "redo") {
       const gate = canRunRedo(orderId, unlockToken);
-      if (!gate.ok) return NextResponse.json({ error: gate.reason }, { status: 403 });
+      if (!gate.ok) {
+        return NextResponse.json(
+          { error: toUserFacingGenerateError(gate.reason, "generic") },
+          { status: 403 }
+        );
+      }
     }
     if (stage === "asv") {
       const gate = canRunAsv(orderId, unlockToken);
-      if (!gate.ok) return NextResponse.json({ error: gate.reason }, { status: 403 });
+      if (!gate.ok) {
+        return NextResponse.json(
+          { error: toUserFacingGenerateError(gate.reason, "generic") },
+          { status: 403 }
+        );
+      }
+    }
+
+    // 동시·남용 게이트 (Upstash 권장)
+    const traffic = await gatePaidGenerate(req);
+    if (!traffic.ok) {
+      return NextResponse.json(
+        {
+          error: traffic.error,
+          code: traffic.code,
+          retryAfterSec: traffic.retryAfterSec,
+        },
+        {
+          status: traffic.status,
+          headers: traffic.retryAfterSec
+            ? { "Retry-After": String(traffic.retryAfterSec) }
+            : undefined,
+        }
+      );
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -168,16 +169,16 @@ export async function POST(req: NextRequest) {
     const label =
       stage === "preview" ? "첫 컷" : stage === "redo" ? "다시 만든 컷" : "A/S 서비스 컷";
 
-    const finishPaid = async (cleanPng: Buffer, previewDataUrl: string, timeSec: string) => {
+    const finishPaid = async (cleanPng: Buffer, timeSec: string) => {
       let order =
         stage === "redo"
           ? markRedo(orderId, unlockToken)
           : stage === "asv"
             ? markAsv(orderId, unlockToken)
             : resolveOrder(orderId, unlockToken);
-      if (!order) {
+      if (!order?.paid) {
         return NextResponse.json(
-          { error: "결제 확인 후 다시 만들 수 있습니다." },
+          { error: "결제 확인 후 만들 수 있습니다." },
           { status: 403 }
         );
       }
@@ -197,74 +198,54 @@ export async function POST(req: NextRequest) {
         bindPreviewToOrder(asset.id, orderId);
         order = putOrder({ ...order, previewAssetId: asset.id });
       }
+      const delivered = markCutDelivered(order.id, order.unlockToken) || order;
       const previewVault = sealPreviewVault({ cleanPng, purposeId });
+      const imageUrl = cleanDataUrl(cleanPng);
       return NextResponse.json({
         stage,
         mock: forceMock,
-        shot: { success: true, imageUrl: previewDataUrl, timeSec, label },
-        previewAssetId: order.previewAssetId,
+        watermark: "none",
+        shot: { success: true, imageUrl, timeSec, label },
+        // 첫 컷 응답 호환 (클라이언트가 preview 키를 볼 수 있음)
+        preview: { success: true, imageUrl, timeSec, label },
+        previewAssetId: delivered.previewAssetId,
         previewVault,
-        unlockToken: order.unlockToken,
-        redoUsed: order.redoUsed,
-        asvUsed: order.asvUsed,
+        unlockToken: delivered.unlockToken,
+        redoUsed: delivered.redoUsed,
+        asvUsed: delivered.asvUsed,
+        cutDeliveredAt: delivered.cutDeliveredAt,
       });
     };
 
     if (forceMock) {
-      const marked = await mockAsPng(label);
-      if (stage === "preview") {
-        const asset = storePreviewAsset({ cleanPng: marked.cleanPng, purposeId });
-        const previewVault = sealPreviewVault({
-          cleanPng: marked.cleanPng,
-          purposeId,
-        });
-        return jsonWithQuota(
-          {
-            mock: true,
-            stage,
-            previewAssetId: asset.id,
-            previewVault,
-            watermark: "subtle",
-            preview: {
-              success: true,
-              imageUrl: marked.previewDataUrl,
-              timeSec: "0.1",
-              label,
-            },
-            previewLeft: Math.max(
-              0,
-              previewQuotaConfig().perDeviceDay - (previewQuota?.count ?? 0)
-            ),
-          },
-          {},
-          previewQuota
-        );
-      }
-      return finishPaid(marked.cleanPng, marked.previewDataUrl, "0.1");
+      const cleanPng = await mockCleanPng(label);
+      return finishPaid(cleanPng, "0.1");
     }
 
     const ai = new GoogleGenAI({ apiKey: apiKey! });
 
     /**
-     * lite@2K → Google이 404 반환 (모델 없음이 아니라 size 조합 미지원).
-     * 2.5-flash-image는 2026-10-02 종료 예정 → 폴백에서 제외, 3.1만 사용.
+     * 정책: 전 구간 gemini-3.1-flash-lite-image @ 1K만.
+     * lite@2K는 미지원(404). flash/pro 폴백 금지(원가·품질 정책).
      */
-    const modelChain: { model: string; imageSize: "1K" | "2K" }[] =
-      stage === "preview"
-        ? [
-            { model: "gemini-3.1-flash-lite-image", imageSize: "1K" },
-            { model: "gemini-3.1-flash-image", imageSize: "1K" },
-          ]
-        : [
-            { model: "gemini-3.1-flash-image", imageSize: "2K" },
-            { model: "gemini-3.1-flash-image", imageSize: "1K" },
-            { model: "gemini-3.1-flash-lite-image", imageSize: "1K" },
-          ];
+    const modelChain: { model: string; imageSize: "1K" }[] = [
+      { model: "gemini-3.1-flash-lite-image", imageSize: "1K" },
+    ];
 
     const callLite = async (v?: number): Promise<ModelResult> => {
+      const extraPresetIds = parseExtraPresetIds(body.extraPresetIds);
+      const extraCustom = sanitizeExtraPrompt(body.extraCustom);
+      // 레거시: 클라이언트가 합친 extraPrompt만 보낸 경우
+      const legacyExtra =
+        !extraPresetIds.length && !extraCustom
+          ? sanitizeExtraPrompt(body.extraPrompt)
+          : "";
       const prompt = buildPrompt(purposeId, v, {
         look: subjectLook,
         season: subjectSeason,
+        extraPresetIds,
+        extraCustom: extraCustom || undefined,
+        extra: legacyExtra || undefined,
       });
       const start = Date.now();
       const errors: string[] = [];
@@ -293,64 +274,35 @@ export async function POST(req: NextRequest) {
               cleanPng: cleanBuf,
             };
           }
-          errors.push(`${model}@${imageSize}: no image`);
+          errors.push("no_image");
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          console.warn(`[generate] ${model}@${imageSize}:`, msg.slice(0, 200));
-          errors.push(`${model}@${imageSize}`);
+          // 원문은 서버 로그만 — 클라이언트로 절대 전달 금지
+          console.warn(`[generate] provider:`, msg.slice(0, 240));
+          errors.push("provider");
         }
       }
 
       return {
         success: false,
-        error: `이미지 생성 실패 (${errors.join(" → ")}). 잠시 후 다시 시도해 주세요.`,
+        error: STUDIO_BUSY,
       };
     };
 
     const result = await callLite(variantIndex);
     if (!result.success || !result.cleanPng) {
       return NextResponse.json(
-        { error: `생성 실패. ${!result.success ? result.error : "버퍼 없음"}` },
-        { status: 500 }
+        { error: STUDIO_BUSY, code: "STUDIO_BUSY" },
+        { status: 503 }
       );
     }
 
-    const marked = await burnSubtleWatermark(result.cleanPng);
-
-    if (stage === "preview") {
-      const asset = storePreviewAsset({ cleanPng: marked.cleanPng, purposeId });
-      const previewVault = sealPreviewVault({
-        cleanPng: marked.cleanPng,
-        purposeId,
-      });
-      return jsonWithQuota(
-        {
-          stage,
-          mock: false,
-          previewAssetId: asset.id,
-          previewVault,
-          watermark: "subtle",
-          preview: {
-            success: true,
-            imageUrl: marked.previewDataUrl,
-            timeSec: result.timeSec,
-            label,
-          },
-          previewLeft: Math.max(
-            0,
-            previewQuotaConfig().perDeviceDay - (previewQuota?.count ?? 0)
-          ),
-        },
-        {},
-        previewQuota
-      );
-    }
-
-    return finishPaid(marked.cleanPng, marked.previewDataUrl, result.timeSec);
+    // 결제 후 컷은 워터마크 없이 클린본만
+    return finishPaid(result.cleanPng, result.timeSec);
   } catch (err) {
-    console.error(err);
+    console.error("[generate] unhandled", err instanceof Error ? err.message : err);
     return NextResponse.json(
-      { error: "생성 처리 중 서버 오류가 발생했습니다." },
+      { error: STUDIO_RETRY, code: "STUDIO_RETRY" },
       { status: 500 }
     );
   }

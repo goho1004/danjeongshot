@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
 import { PACKS, POSITIONING, PRICE, PURPOSES, TRUST_CHIPS } from "@/lib/purposes";
+import GalleryView from "@/components/GalleryView";
 import SiteFooter from "@/components/SiteFooter";
 
 export default function HomePage() {
@@ -10,14 +11,17 @@ export default function HomePage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 md:px-8">
           <Link
             href="/"
-            className="focus-ring font-display text-xl tracking-brand text-ink-950 transition hover:text-studio md:text-2xl"
+            className="focus-ring flex items-center gap-2 font-display text-xl tracking-brand text-ink-950 transition hover:text-studio md:text-2xl"
           >
             {BRAND.sign}
+            <span className="rounded-full bg-studio/10 px-2 py-0.5 font-sans text-[10px] font-semibold tracking-wide text-studio-deep">
+              {BRAND.beta}
+            </span>
           </Link>
           <nav className="hidden items-center gap-8 text-sm font-medium text-ink-500 md:flex">
-            <Link href="/gallery" className="focus-ring rounded hover:text-ink-900">
+            <a href="#gallery" className="focus-ring rounded hover:text-ink-900">
               갤러리
-            </Link>
+            </a>
             <a href="#deliverables" className="focus-ring rounded hover:text-ink-900">
               받는 것
             </a>
@@ -45,7 +49,7 @@ export default function HomePage() {
           <div className="grain" aria-hidden />
           <div className="relative mx-auto flex min-h-[calc(100svh-4rem)] max-w-6xl flex-col justify-center px-5 pb-20 pt-12 md:px-8 md:pb-28 md:pt-16">
             <p className="animate-rise text-sm font-medium tracking-wide text-studio-deep">
-              {BRAND.speed} · 마감 전에 쓰는 단정 증명사진
+              {BRAND.beta} · {BRAND.speed} · 마감 전에 쓰는 단정 증명사진
             </p>
             <h1 className="animate-rise-2 mt-5 max-w-3xl font-display text-[2.35rem] leading-[1.08] tracking-tight text-ink-950 sm:text-[2.75rem] md:text-6xl md:leading-[1.05] lg:text-7xl">
               <span className="block text-studio">{BRAND.sign}</span>
@@ -67,12 +71,12 @@ export default function HomePage() {
                   →
                 </span>
               </Link>
-              <Link
-                href="/gallery"
+              <a
+                href="#gallery"
                 className="focus-ring text-sm font-semibold text-ink-700 underline-offset-4 hover:text-studio hover:underline"
               >
                 전후 갤러리 보기
-              </Link>
+              </a>
             </div>
             <ul className="animate-fade mt-12 flex flex-wrap gap-x-5 gap-y-2 border-t border-ink-100/80 pt-6 text-xs font-medium text-ink-500">
               {TRUST_CHIPS.map((c) => (
@@ -82,6 +86,24 @@ export default function HomePage() {
                 </li>
               ))}
             </ul>
+          </div>
+        </section>
+
+        <section id="gallery" className="border-t border-ink-100 bg-paper">
+          <div className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-24">
+            <p className="text-xs font-semibold tracking-wide text-studio">전 · 후</p>
+            <h2 className="mt-3 font-display text-3xl text-ink-950 md:text-5xl">갤러리</h2>
+            <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-500">
+              셀카에서 단정 프사로. 용도별로 보면, 결제 후 받는 결이 어떤지 감이 옵니다. 과한 미모
+              보정이나 네컷 감성은 아니에요.
+            </p>
+            <p className="mt-3 max-w-xl text-xs leading-relaxed text-ink-400">
+              아래는 구성·톤 예시입니다. 실제 결과물은 업로드한 셀카와 선택한 용도에 따라 달라집니다.
+              여권·관공서 제출용은 아닙니다.
+            </p>
+            <div className="mt-10">
+              <GalleryView />
+            </div>
           </div>
         </section>
 
@@ -110,7 +132,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="mt-6 font-display text-2xl text-ink-950">단정 PNG</h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink-500">
-                  미리보기(워터마크)를 확인한 뒤 결제하면, 워터마크 없는 PNG 한 장을 받습니다.
+                  팩을 고르고 결제한 뒤 첫 컷을 만듭니다. 워터마크 없는 PNG 한 장을 받습니다.
                   사람인·잡코리아·링크드인에 바로 올릴 수 있어요.
                 </p>
                 <ul className="mt-4 space-y-1.5 text-sm text-ink-500">
@@ -162,7 +184,7 @@ export default function HomePage() {
                 href="/make"
                 className="focus-ring text-sm font-semibold text-studio hover:underline"
               >
-                미리보기하며 만들기 →
+                용도 고르고 만들기 →
               </Link>
             </div>
           </div>
@@ -192,12 +214,12 @@ export default function HomePage() {
                   d: "이력서, 링크드인, 인화용 중 고르고 정면·밝은 셀카를 올려 주세요.",
                 },
                 {
-                  t: "첫 컷 미리보기",
-                  d: "옅은 표시가 있는 미리보기를 봅니다. 괜찮으면 결제하고, 아쉬우면 결제 후 다시 만들 수 있어요.",
+                  t: "팩 결제",
+                  d: "기본·플러스 중 고르고 결제합니다. 무료 미리보기는 없고, 결제 후 첫 컷이 열려요.",
                 },
                 {
-                  t: "다운로드",
-                  d: "마음에 들면 PNG를 받습니다. 받은 뒤에는 환불이 어려워요.",
+                  t: "첫 컷 · 다운로드",
+                  d: "첫 컷을 보고 PNG를 받습니다. 아쉬우면 다시 만들기·A/S가 있어요. 받은 뒤에는 환불이 어려워요.",
                 },
               ].map((step, i) => (
                 <li key={step.t} className="relative border-t border-ink-200 pt-6">
@@ -331,25 +353,43 @@ export default function HomePage() {
                 <ol className="mt-4 list-decimal space-y-2 pl-4 text-sm text-ink-300">
                   <li>단정 PNG 저장</li>
                   <li>플러스면 반명함·증명 레이아웃 받기 (기본은 필요 시 추가)</li>
-                  <li>타일 확인 후 폰 앨범이나 USB에 담기</li>
+                  <li>타일 확인 후 폰 앨범에 담기</li>
                 </ol>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-studio-soft">키오스크</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-studio-soft">
+                  프린팅박스
+                </p>
                 <ol className="mt-4 list-decimal space-y-2 pl-4 text-sm text-ink-300">
-                  <li>편의점·사진관·마트의 「포토/사진 인쇄」</li>
-                  <li>내 기기·USB로 파일 열기</li>
-                  <li>용지 4×6 → 미리보기 → 인화</li>
+                  <li>앱·웹에서 사진 인화 · 용지 4×6</li>
+                  <li>레이아웃 PNG 업로드 → 인쇄코드</li>
+                  <li>근처 기기에 코드 입력 · 결제 · 출력</li>
                   <li>인화비는 매장 · 관공서 제출용은 아닙니다</li>
                 </ol>
               </div>
             </div>
-            <Link
-              href="/make?purpose=sheet"
-              className="focus-ring mt-10 inline-flex text-sm font-semibold text-studio-soft hover:underline"
-            >
-              인화용으로 시작 →
-            </Link>
+            <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3">
+              <Link
+                href="/photobox"
+                className="focus-ring inline-flex text-sm font-semibold text-studio-soft hover:underline"
+              >
+                포토박스 안내 →
+              </Link>
+              <a
+                href="https://printingbox.kr/store"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="focus-ring inline-flex text-sm font-semibold text-white/80 hover:underline"
+              >
+                내 주변 프린팅박스 찾기 →
+              </a>
+              <Link
+                href="/make?purpose=sheet"
+                className="focus-ring inline-flex text-sm font-semibold text-white/80 hover:underline"
+              >
+                인화용으로 시작 →
+              </Link>
+            </div>
           </div>
         </section>
 

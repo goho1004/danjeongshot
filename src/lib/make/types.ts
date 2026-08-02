@@ -45,4 +45,5 @@ export type RestorePaidData = {
   layoutPaidSizeIds?: string[];
   redoUsed?: number;
   asvUsed?: number;
+  downloaded?: boolean;
 };

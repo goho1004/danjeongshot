@@ -16,7 +16,7 @@ export default function LegalShell({
           <Link href="/" className="font-display text-lg tracking-brand text-ink-950 md:text-xl">
             {BRAND.sign}
           </Link>
-          <Link href="/make" className="text-xs font-medium text-accent-deep">
+          <Link href="/make?resume=1" className="text-xs font-medium text-accent-deep">
             만들기
           </Link>
         </div>

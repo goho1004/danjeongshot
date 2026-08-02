@@ -197,19 +197,29 @@ export async function loadCheckoutSession(sessionKey: string): Promise<{
   };
 }
 
+type RestoreShotIn = {
+  id: string;
+  imageUrl: string;
+  label?: string;
+  unlocked?: boolean;
+  vault?: string | null;
+};
+
 export async function persistRestorePaid(
   restoreKey: string,
   data: Record<string, unknown> & {
     orderId: string;
     previewVault?: string | null;
     selfie?: string | null;
-    shots?: Array<{ id: string; imageUrl: string; unlocked?: boolean; vault?: string | null }>;
+    shots?: RestoreShotIn[];
   }
 ): Promise<void> {
   const heavyKey = `restore_${data.orderId}`;
   const shotVaults: Record<string, string> = {};
+  const shotImages: Record<string, string> = {};
   for (const s of data.shots || []) {
     if (s.vault) shotVaults[s.id] = s.vault;
+    if (s.imageUrl?.startsWith("data:")) shotImages[s.id] = s.imageUrl;
   }
   await idbSet(
     heavyKey,
@@ -217,21 +227,37 @@ export async function persistRestorePaid(
       previewVault: data.previewVault || null,
       selfie: data.selfie || null,
       shotVaults,
+      shotImages,
     })
   );
   const slim = {
     ...data,
-    v: 2,
+    v: 3,
     heavyKey,
     previewVault: undefined,
     selfie: undefined,
     shots: (data.shots || []).map((s) => ({
       id: s.id,
+      label: s.label || "",
+      // data URL 은 IDB shotImages — sessionStorage 에는 넣지 않음
       imageUrl: s.imageUrl?.startsWith("data:") ? "" : s.imageUrl || "",
       unlocked: !!s.unlocked,
     })),
   };
   sessionStorage.setItem(restoreKey, JSON.stringify(slim));
+}
+
+export async function clearRestorePaid(restoreKey: string): Promise<void> {
+  try {
+    const raw = sessionStorage.getItem(restoreKey);
+    if (raw) {
+      const slim = JSON.parse(raw) as { heavyKey?: string };
+      if (slim.heavyKey) await idbDel(String(slim.heavyKey));
+    }
+  } catch {
+    /* ignore */
+  }
+  sessionStorage.removeItem(restoreKey);
 }
 
 export async function loadRestorePaid(restoreKey: string): Promise<Record<
@@ -242,7 +268,12 @@ export async function loadRestorePaid(restoreKey: string): Promise<Record<
   if (!raw) return null;
   const slim = JSON.parse(raw) as Record<string, unknown> & {
     heavyKey?: string;
-    shots?: Array<{ id: string; imageUrl: string; unlocked?: boolean }>;
+    shots?: Array<{
+      id: string;
+      imageUrl: string;
+      label?: string;
+      unlocked?: boolean;
+    }>;
     previewVault?: string | null;
     selfie?: string | null;
   };
@@ -250,6 +281,7 @@ export async function loadRestorePaid(restoreKey: string): Promise<Record<
   let previewVault = (slim.previewVault as string | null) || null;
   let selfie = (slim.selfie as string | null) || null;
   const shotVaults: Record<string, string> = {};
+  const shotImages: Record<string, string> = {};
 
   if (slim.heavyKey) {
     const heavyRaw = await idbGet(String(slim.heavyKey));
@@ -258,16 +290,20 @@ export async function loadRestorePaid(restoreKey: string): Promise<Record<
         previewVault?: string | null;
         selfie?: string | null;
         shotVaults?: Record<string, string>;
+        shotImages?: Record<string, string>;
       };
       if (heavy.previewVault) previewVault = heavy.previewVault;
       if (heavy.selfie) selfie = heavy.selfie;
       Object.assign(shotVaults, heavy.shotVaults || {});
+      Object.assign(shotImages, heavy.shotImages || {});
     }
   }
 
   const shots = (slim.shots || []).map((s) => ({
     ...s,
+    label: s.label || "컷",
     imageUrl:
+      shotImages[s.id] ||
       s.imageUrl ||
       "data:image/svg+xml," +
         encodeURIComponent(

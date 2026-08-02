@@ -1,8 +1,7 @@
 import type { ChangeEvent, RefObject } from "react";
 import ShootTips from "@/components/ShootTips";
 import InlineError from "@/components/make/InlineError";
-import PackPicker from "@/components/make/steps/PackPicker";
-import type { BusyKind } from "@/lib/make/types";
+import ExtraPromptFields from "@/components/make/ExtraPromptFields";
 import {
   PURPOSES,
   SUBJECT_LOOKS,
@@ -21,23 +20,19 @@ type PurposeUploadStepProps = {
   setSubjectLook: (id: SubjectLookId) => void;
   subjectSeason: SubjectSeasonId;
   setSubjectSeason: (id: SubjectSeasonId) => void;
+  extraPresetIds: string[];
+  toggleExtraPreset: (id: string) => void;
+  extraCustom: string;
+  setExtraCustom: (v: string) => void;
   selfie: string | null;
   inputRef: RefObject<HTMLInputElement | null>;
   onFile: (e: ChangeEvent<HTMLInputElement>) => void;
   processFile: (file: File) => void;
   error: string | null;
   errorAt: string | null;
-  hasPreview: boolean;
-  paid: boolean;
-  packId: PackId;
-  packBullets: string[];
-  busyKind: BusyKind;
-  generate: () => void;
-  previewLeft: number | null;
-  loadingLines: readonly string[];
-  loadingIdx: number;
 };
 
+/** 1~3만. 팩·결제·첫컷 버튼은 MakeStudio에서 결제창 다음에 둠. */
 export default function PurposeUploadStep({
   purposeId,
   setPurposeId,
@@ -46,21 +41,16 @@ export default function PurposeUploadStep({
   setSubjectLook,
   subjectSeason,
   setSubjectSeason,
+  extraPresetIds,
+  toggleExtraPreset,
+  extraCustom,
+  setExtraCustom,
   selfie,
   inputRef,
   onFile,
   processFile,
   error,
   errorAt,
-  hasPreview,
-  paid,
-  packId,
-  packBullets,
-  busyKind,
-  generate,
-  previewLeft,
-  loadingLines,
-  loadingIdx,
 }: PurposeUploadStepProps) {
   return (
     <>
@@ -128,6 +118,16 @@ export default function PurposeUploadStep({
             </button>
           ))}
         </div>
+
+        <div className="mt-5">
+          <ExtraPromptFields
+            subjectLook={subjectLook}
+            extraPresetIds={extraPresetIds}
+            toggleExtraPreset={toggleExtraPreset}
+            extraCustom={extraCustom}
+            setExtraCustom={setExtraCustom}
+          />
+        </div>
       </div>
 
       <div>
@@ -163,35 +163,6 @@ export default function PurposeUploadStep({
         <div className="mt-3">
           <ShootTips compact />
         </div>
-        {!hasPreview && !paid && (
-          <PackPicker packId={packId} setPackId={setPackId} bullets={packBullets} />
-        )}
-      </div>
-
-      <div>
-        <button
-          type="button"
-          disabled={!!busyKind || !selfie}
-          onClick={generate}
-          className="w-full rounded-xl bg-accent py-3.5 text-sm font-semibold text-white disabled:opacity-50"
-        >
-          {busyKind === "preview" ? "첫 컷 만드는 중…" : "4. 첫 컷 보기"}
-        </button>
-        <InlineError at="generate" errorAt={errorAt} message={error} />
-        {previewLeft !== null && previewLeft >= 0 && !paid && (
-          <p className="mt-2 text-center text-[11px] text-ink-400">
-            오늘 미리보기 남은 횟수 약 {previewLeft}회 · 재접속해도 초기되지 않아요
-          </p>
-        )}
-        {busyKind && (
-          <p
-            key={`${busyKind}-${loadingIdx}`}
-            className="animate-rise mt-3 text-center text-sm font-medium text-accent-deep"
-            aria-live="polite"
-          >
-            {loadingLines[loadingIdx % loadingLines.length]}
-          </p>
-        )}
       </div>
     </>
   );

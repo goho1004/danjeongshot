@@ -3,6 +3,11 @@
 import { ChangeEvent } from "react";
 import { newShotId, type Shot } from "@/lib/make/types";
 import type { MakeStudioState } from "@/hooks/make/useMakeStudioState";
+import {
+  STUDIO_BUSY,
+  STUDIO_RETRY,
+  toUserFacingGenerateError,
+} from "@/lib/userFacingErrors";
 
 export function useGenerate(
   state: MakeStudioState,
@@ -61,51 +66,54 @@ export function useGenerate(
       fail("generate", "셀카를 먼저 업로드하세요.");
       return;
     }
+    if (!state.paid || !orderId || !unlockToken) {
+      fail("generate", "팩을 고르고 결제한 뒤 첫 컷을 볼 수 있어요.");
+      return;
+    }
     setBusyKind("preview");
     clearFail();
     setShots([]);
-    resetOrderState();
     try {
-      const postGenerate = async (extra?: {
-        challengeToken?: string;
-        turnstileToken?: string;
-      }) =>
-        fetch("/api/generate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-djs-device": deviceFp,
-          },
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-djs-device": deviceFp,
+        },
           body: JSON.stringify({
             stage: "preview",
             imageBase64: selfie,
             purposeId,
             subjectLook,
             subjectSeason,
-            ...extra,
+            extraPresetIds: state.extraPresetIds,
+            extraCustom: state.extraCustom,
+            orderId,
+            unlockToken,
           }),
-        });
+      });
+      const data = await res.json().catch(() => ({}));
 
-      let res = await postGenerate();
-      let data = await res.json();
-
-      if (!res.ok && data.code === "CHALLENGE_REQUIRED") {
-        const ch = await fetch("/api/preview/challenge");
-        const chal = await ch.json();
-        if (!ch.ok || !chal.token) {
-          throw new Error(data.error || "확인에 실패했습니다.");
-        }
-        await new Promise((r) => setTimeout(r, Number(chal.waitMs) || 1600));
-        res = await postGenerate({ challengeToken: chal.token });
-        data = await res.json();
+      if (!res.ok) {
+        const kind =
+          res.status === 429 || data.code?.startsWith?.("GEN_") ? "wait" : "busy";
+        fail(
+          "generate",
+          toUserFacingGenerateError(data.error, kind as "wait" | "busy")
+        );
+        return;
       }
-
-      if (!res.ok) throw new Error(data.error || "생성 실패");
-      const url = data.preview?.imageUrl as string | undefined;
-      if (!url) throw new Error("미리보기 없음");
+      const url =
+        (data.preview?.imageUrl as string | undefined) ||
+        (data.shot?.imageUrl as string | undefined);
+      if (!url) {
+        fail("generate", STUDIO_RETRY);
+        return;
+      }
       setMock(Boolean(data.mock));
       if (typeof data.previewLeft === "number") setPreviewLeft(data.previewLeft);
       if (typeof data.previewAssetId === "string") setPreviewAssetId(data.previewAssetId);
+      if (typeof data.unlockToken === "string") setUnlockToken(data.unlockToken);
       const vault =
         typeof data.previewVault === "string" ? (data.previewVault as string) : null;
       if (vault) setPreviewVault(vault);
@@ -113,15 +121,15 @@ export function useGenerate(
       const shot: Shot = {
         id,
         imageUrl: url,
-        label: data.preview?.label || "첫 컷",
-        timeSec: data.preview?.timeSec,
+        label: data.preview?.label || data.shot?.label || "첫 컷",
+        timeSec: data.preview?.timeSec || data.shot?.timeSec,
         vault,
-        unlocked: false,
+        unlocked: true,
       };
       setShots([shot]);
       setSelectedShotId(id);
-    } catch (e) {
-      fail("generate", e instanceof Error ? e.message : "생성 오류");
+    } catch {
+      fail("generate", STUDIO_BUSY);
     } finally {
       setBusyKind(null);
     }
@@ -153,25 +161,32 @@ export function useGenerate(
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-djs-device": deviceFp,
+        },
         body: JSON.stringify({
           stage,
           imageBase64: source,
           purposeId,
           subjectLook,
           subjectSeason,
+          extraPresetIds: state.extraPresetIds,
+          extraCustom: state.extraCustom,
           orderId,
           unlockToken,
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        fail(stage, data.error || "다시 만들기에 실패했습니다.");
+        const kind =
+          res.status === 429 || data.code?.startsWith?.("GEN_") ? "wait" : "busy";
+        fail(stage, toUserFacingGenerateError(data.error, kind as "wait" | "busy"));
         return;
       }
       const url = data.shot?.imageUrl as string | undefined;
       if (!url) {
-        fail(stage, "새 컷이 없습니다.");
+        fail(stage, STUDIO_RETRY);
         return;
       }
       const vault =
@@ -196,7 +211,7 @@ export function useGenerate(
       if (typeof data.redoUsed !== "number" && stage === "redo") setRedoUsed((n) => n + 1);
       if (typeof data.asvUsed !== "number" && stage === "asv") setAsvUsed((n) => n + 1);
     } catch {
-      fail(stage, "다시 만들기에 실패했습니다. 기존 컷은 받으실 수 있어요.");
+      fail(stage, STUDIO_BUSY);
     } finally {
       state.setBusyKind(null);
     }

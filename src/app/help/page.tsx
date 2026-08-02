@@ -10,6 +10,14 @@ export const metadata = {
 export default function HelpPage() {
   return (
     <LegalShell title="도움말 · CS">
+      <section className="mb-4 rounded-xl border border-studio/20 bg-studio/5 p-4 text-sm text-ink-800">
+        <p className="font-semibold text-studio-deep">베타 안내</p>
+        <p className="mt-1 text-ink-600">
+          사업자 등록 전 베타입니다. 결제는 시뮬레이션일 수 있어요. 여권·관공서 제출용은 아니며,
+          받은 뒤 환불은 어렵습니다. 팩은 기본(₩9,900 · PNG)과 플러스(₩14,900 · PNG + 반명함·증명)
+          입니다.
+        </p>
+      </section>
       <section className="rounded-xl border border-accent/25 bg-accent-soft/40 p-4 text-sm text-ink-800">
         <p className="font-semibold text-accent-deep">결제 후 이렇게 나뉩니다</p>
         <ol className="mt-2 list-decimal space-y-1 pl-5 text-ink-700">
@@ -25,9 +33,8 @@ export default function HelpPage() {
           </li>
         </ol>
         <p className="mt-2 text-xs text-ink-500">
-          품질이 아쉬우면 환불보다 다시 만들기를 권합니다. 결제 전 미리보기는 기기당 하루 횟수가
-          있어, 재접속만으로 초기화되지 않아요. 팩은 기본(₩9,900 · PNG)과 플러스(₩14,900 · PNG +
-          반명함·증명) 두 가지입니다.
+          품질이 아쉬우면 환불보다 다시 만들기를 권합니다. 무료 미리보기는 없고, 결제 후 첫 컷이
+          열립니다. 팩은 기본(₩9,900 · PNG)과 플러스(₩14,900 · PNG + 반명함·증명) 두 가지입니다.
         </p>
       </section>
 
@@ -46,6 +53,25 @@ export default function HelpPage() {
       </section>
 
       <section>
+        <h2 className="text-base font-semibold text-ink-950">인화 · 포토박스</h2>
+        <p className="mt-2 text-ink-700">
+          배송은 없고, 레이아웃 PNG를{" "}
+          <Link href="/photobox" className="text-accent-deep underline">
+            포토박스 안내
+          </Link>
+          대로 프린팅박스에서 뽑으면 됩니다.{" "}
+          <a
+            href="https://printingbox.kr/store"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent-deep underline"
+          >
+            내 주변 기기 찾기 ↗
+          </a>
+        </p>
+      </section>
+
+      <section>
         <h2 className="text-base font-semibold text-ink-950">정책</h2>
         <p className="mt-2">
           <Link href="/legal/refund" className="text-accent-deep underline">
@@ -56,8 +82,8 @@ export default function HelpPage() {
             이용약관
           </Link>
           {" · "}
-          <Link href="/make" className="text-accent-deep underline">
-            만들기
+          <Link href="/make?resume=1" className="text-accent-deep underline">
+            만들기로 돌아가기
           </Link>
         </p>
       </section>

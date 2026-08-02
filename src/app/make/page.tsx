@@ -13,7 +13,7 @@ export default function MakePage() {
             {BRAND.sign}
           </Link>
           <div className="flex items-center gap-4">
-            <Link href="/gallery" className="text-[11px] font-medium text-ink-500 hover:text-ink-800">
+            <Link href="/#gallery" className="text-[11px] font-medium text-ink-500 hover:text-ink-800">
               갤러리
             </Link>
             <p className="text-[11px] font-medium text-ink-400">{BRAND.speed}</p>
@@ -24,8 +24,8 @@ export default function MakePage() {
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-studio">Make</p>
         <h1 className="mt-2 font-display text-3xl text-ink-950 md:text-4xl">만들기</h1>
         <p className="mt-3 text-sm leading-relaxed text-ink-500">
-          용도와 사진 속 분을 고른 뒤 셀카를 올려 주세요. 첫 컷을 미리 보고, 기본·플러스 중 골라
-          결제하면 마음에 들 때 받아 가시거나 다시 만들 수 있어요. {BRAND.speed}.
+          용도와 사진 속 분을 고른 뒤 셀카를 올리고, 기본·플러스 중 골라 결제하세요. 결제 후 「첫
+          컷 보기」가 열립니다. 마음에 들 때 받거나 다시 만들 수 있어요. {BRAND.speed}.
         </p>
         <Suspense fallback={<p className="mt-8 text-ink-500">로딩…</p>}>
           <MakeStudio />

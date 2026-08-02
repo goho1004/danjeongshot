@@ -1,7 +1,9 @@
 import type { ChangeEvent, RefObject } from "react";
 import Link from "next/link";
 import InlineError from "@/components/make/InlineError";
+import ExtraPromptFields from "@/components/make/ExtraPromptFields";
 import type { BusyKind } from "@/lib/make/types";
+import type { SubjectLookId } from "@/lib/purposes";
 
 type RegenPanelProps = {
   busyKind: BusyKind;
@@ -14,6 +16,11 @@ type RegenPanelProps = {
   runPaidRegen: (stage: "redo" | "asv") => void;
   error: string | null;
   errorAt: string | null;
+  subjectLook: SubjectLookId;
+  extraPresetIds: string[];
+  toggleExtraPreset: (id: string) => void;
+  extraCustom: string;
+  setExtraCustom: (v: string) => void;
 };
 
 export default function RegenPanel({
@@ -27,6 +34,11 @@ export default function RegenPanel({
   runPaidRegen,
   error,
   errorAt,
+  subjectLook,
+  extraPresetIds,
+  toggleExtraPreset,
+  extraCustom,
+  setExtraCustom,
 }: RegenPanelProps) {
   return (
     <>
@@ -95,6 +107,14 @@ export default function RegenPanel({
                 : "마음에 안 들어요 · 다시 만들어 볼게요"}
           </button>
           <InlineError at="redo" errorAt={errorAt} message={error} />
+          <ExtraPromptFields
+            compact
+            subjectLook={subjectLook}
+            extraPresetIds={extraPresetIds}
+            toggleExtraPreset={toggleExtraPreset}
+            extraCustom={extraCustom}
+            setExtraCustom={setExtraCustom}
+          />
         </div>
       )}
 
@@ -113,6 +133,14 @@ export default function RegenPanel({
                 : "그래도 아쉬워요 · 한 번 더 봐 주세요"}
           </button>
           <InlineError at="asv" errorAt={errorAt} message={error} />
+          <ExtraPromptFields
+            compact
+            subjectLook={subjectLook}
+            extraPresetIds={extraPresetIds}
+            toggleExtraPreset={toggleExtraPreset}
+            extraCustom={extraCustom}
+            setExtraCustom={setExtraCustom}
+          />
         </div>
       )}
 

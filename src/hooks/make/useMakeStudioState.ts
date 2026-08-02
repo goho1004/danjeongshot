@@ -6,13 +6,27 @@ import {
   LAYOUT_UPSELL_ORDER,
   getPrintSize,
 } from "@/lib/photoSheet";
-import { getPack, packAmountKrw, type PackId, type PurposeId, type SubjectLookId, type SubjectSeasonId } from "@/lib/purposes";
+import {
+  composeExtraPrompt,
+  EXTRA_PROMPT_PRESETS,
+  getPack,
+  packAmountKrw,
+  toggleExtraPresetId,
+  type PackId,
+  type PurposeId,
+  type SubjectLookId,
+  type SubjectSeasonId,
+} from "@/lib/purposes";
 import type { BusyKind, LayoutSaveReady, SaveReady, Shot } from "@/lib/make/types";
 
 export function useMakeStudioState(initialPurpose: PurposeId) {
   const [purposeId, setPurposeId] = useState<PurposeId>(initialPurpose);
   const [subjectLook, setSubjectLook] = useState<SubjectLookId>("as_photo");
   const [subjectSeason, setSubjectSeason] = useState<SubjectSeasonId>("as_photo");
+  /** 추가 요청 프리셋 id들 */
+  const [extraPresetIds, setExtraPresetIds] = useState<string[]>([]);
+  /** 직접 입력 */
+  const [extraCustom, setExtraCustom] = useState("");
   const [packId, setPackId] = useState<PackId>(initialPurpose === "sheet" ? "plus" : "basic");
   const [shots, setShots] = useState<Shot[]>([]);
   const [selectedShotId, setSelectedShotId] = useState<string | null>(null);
@@ -30,6 +44,8 @@ export function useMakeStudioState(initialPurpose: PurposeId) {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderTicket, setOrderTicket] = useState<string | null>(null);
   const [unlockToken, setUnlockToken] = useState<string | null>(null);
+  /** 대리점코드 (?partner=) */
+  const [partnerCode, setPartnerCode] = useState<string | null>(null);
   const [downloaded, setDownloaded] = useState(false);
   const [primaryShotId, setPrimaryShotId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
@@ -112,13 +128,37 @@ export function useMakeStudioState(initialPurpose: PurposeId) {
   }, [layoutPackPaid, layoutPaidSizeIds]);
   const hasPreview = shots.length > 0;
 
+  const extraPrompt = useMemo(
+    () => composeExtraPrompt(extraPresetIds, extraCustom),
+    [extraPresetIds, extraCustom]
+  );
+
+  const toggleExtraPreset = (id: string) => {
+    setExtraPresetIds((prev) => toggleExtraPresetId(prev, id));
+  };
+
+  const setSubjectLookSafe = (id: SubjectLookId) => {
+    setSubjectLook(id);
+    setExtraPresetIds((prev) =>
+      prev.filter((pid) => {
+        const p = EXTRA_PROMPT_PRESETS.find((x) => x.id === pid);
+        return !p?.hideForLooks?.includes(id);
+      })
+    );
+  };
+
   return {
     purposeId,
     setPurposeId,
     subjectLook,
-    setSubjectLook,
+    setSubjectLook: setSubjectLookSafe,
     subjectSeason,
     setSubjectSeason,
+    extraPresetIds,
+    toggleExtraPreset,
+    extraCustom,
+    setExtraCustom,
+    extraPrompt,
     packId,
     setPackId,
     shots,
@@ -153,6 +193,8 @@ export function useMakeStudioState(initialPurpose: PurposeId) {
     setOrderTicket,
     unlockToken,
     setUnlockToken,
+    partnerCode,
+    setPartnerCode,
     downloaded,
     setDownloaded,
     primaryShotId,
