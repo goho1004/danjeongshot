@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import ShootTips from "@/components/ShootTips";
-import { PRINTING_BOX } from "@/lib/printingBox";
+import { PRINT_GUIDE, PRINTING_BOX } from "@/lib/printingBox";
 import PurposeUploadStep from "@/components/make/steps/PurposeUploadStep";
 import PreviewStep from "@/components/make/steps/PreviewStep";
 import CheckoutStep from "@/components/make/steps/CheckoutStep";
@@ -299,27 +299,33 @@ export default function MakeStudio() {
 
       <section
         id="kiosk-guide"
-        className="rounded-2xl border border-ink-100 bg-white/70 p-5 text-sm text-ink-700"
+        className="rounded-2xl border-2 border-ink-900 bg-ink-950 p-5 text-sm text-white"
       >
-        <h2 className="font-display text-lg font-semibold text-ink-950">포토박스 · 인화</h2>
-        <p className="mt-2 text-xs text-ink-500">
-          배송은 없어요. 레이아웃 PNG를 받아{" "}
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-studio-soft">
+          {PRINT_GUIDE.label}
+        </p>
+        <h2 className="mt-1 font-display text-lg font-semibold text-white">
+          {PRINTING_BOX.name}에서 4×6 인화
+        </h2>
+        <p className="mt-2 text-xs text-ink-300">
+          배송은 없어요. 레이아웃 PNG를 업로드한 뒤 인쇄코드로 근처 기기에서 뽑으세요.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
           <a
             href={PRINTING_BOX.storeUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-accent-deep underline"
+            className="inline-flex rounded-full bg-studio-soft px-4 py-2 text-xs font-semibold text-ink-950 hover:bg-white"
           >
-            {PRINTING_BOX.name}
+            {PRINTING_BOX.name} 위치 찾기 →
           </a>
-          에서 4×6으로 뽑으세요.
-        </p>
-        <Link
-          href="/photobox"
-          className="mt-3 inline-flex text-sm font-semibold text-studio-deep hover:underline"
-        >
-          포토박스 안내 · 위치 찾기 →
-        </Link>
+          <Link
+            href={PRINT_GUIDE.path}
+            className="inline-flex rounded-full border border-white/35 px-4 py-2 text-xs font-semibold text-white hover:border-white"
+          >
+            {PRINT_GUIDE.label} 자세히 →
+          </Link>
+        </div>
       </section>
 
       <div id="shoot-tips-full">

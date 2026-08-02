@@ -1,13 +1,21 @@
 /**
  * 인화 파트너 — 프린팅박스 (인핸즈와 동일 패턴: 결과 PNG → 프박 인화)
  * 단정은 배송·전용 연동 ✗ · 링크·안내만.
+ * 사이트 안내 페이지 표기: 사진인화안내 (/print)
  */
+
+/** 단정 사이트 안내 페이지 */
+export const PRINT_GUIDE = {
+  label: "사진인화안내",
+  path: "/print",
+  short: "인화 안내",
+} as const;
 
 export const PRINTING_BOX = {
   name: "프린팅박스",
   /** 공식 웹 */
   homeUrl: "https://printingbox.kr/",
-  /** 내 주변 기기 찾기 (인핸즈 ‘여기를 클릭해서…’와 동일 역할) */
+  /** 내 주변 기기 찾기 */
   storeUrl: "https://printingbox.kr/store",
   /** 앱 (선택) */
   androidUrl:

@@ -163,13 +163,15 @@ const RULES: Rule[] = [
       "인쇄",
       "프린팅박스",
       "포토박스",
+      "사진인화",
+      "인화안내",
       "프박",
     ],
     refundHint: "n/a",
     actions: ["auto_reply"],
     reply:
-      "실물 배송은 없습니다. 인화용 레이아웃 PNG를 받은 뒤 프린팅박스(포토박스)에서 용지 4×6으로 출력하세요. 위치: https://printingbox.kr/store · 안내: /photobox . 인화비·기기 품질은 매장·프린팅박스 영역입니다.",
-    agentNote: "배송·지정 키오스크 약속 금지. 프린팅박스 링크만.",
+      "실물 배송은 없습니다. 인화용 레이아웃 PNG를 받은 뒤 프린팅박스에서 용지 4×6으로 출력하세요. 위치: https://printingbox.kr/store · 안내: /print (사진인화안내). 인화비·기기 품질은 매장·프린팅박스 영역입니다.",
+    agentNote: "배송·지정 키오스크 약속 금지. 프린팅박스·/print 링크.",
   },
   {
     intent: "payment_fail",

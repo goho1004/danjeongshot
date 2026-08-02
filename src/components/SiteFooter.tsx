@@ -34,8 +34,8 @@ export default function SiteFooter() {
             <Link href="/legal/refund" className="hover:text-ink-700">
               환불·청약철회
             </Link>
-            <Link href="/photobox" className="hover:text-ink-700">
-              포토박스
+            <Link href="/print" className="hover:text-ink-700">
+              사진인화안내
             </Link>
             <Link href="/help" className="hover:text-ink-700">
               도움말

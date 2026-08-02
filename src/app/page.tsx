@@ -342,11 +342,39 @@ export default function HomePage() {
 
         <section id="kiosk" className="bg-ink-950 text-white">
           <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-24">
-            <h2 className="font-display text-3xl md:text-4xl">종이로 내야 할 때</h2>
-            <p className="mt-4 max-w-xl text-ink-300 leading-relaxed">
-              택배로 인화본을 보내드리지는 않아요. 인화용 레이아웃 PNG를 받아 가까운 키오스크에서
-              뽑으시면 됩니다.
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-studio-soft">
+              사진인화안내
             </p>
+            <h2 className="mt-3 font-display text-3xl md:text-4xl">
+              종이로 낼 때 · 프린팅박스
+            </h2>
+            <p className="mt-4 max-w-xl text-ink-300 leading-relaxed">
+              택배 배송은 없어요. 인화용 레이아웃 PNG를{" "}
+              <span className="text-white font-medium">프린팅박스</span>에 올려 근처 기기에서
+              뽑으세요.
+            </p>
+            <div className="mt-10 flex flex-wrap gap-3">
+              <a
+                href="https://printingbox.kr/store"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="focus-ring inline-flex rounded-full bg-studio-soft px-6 py-3 text-sm font-semibold text-ink-950 hover:bg-white"
+              >
+                프린팅박스 위치 찾기 →
+              </a>
+              <Link
+                href="/print"
+                className="focus-ring inline-flex rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white hover:border-white"
+              >
+                사진인화안내 자세히 →
+              </Link>
+              <Link
+                href="/make?purpose=sheet"
+                className="focus-ring inline-flex items-center px-2 text-sm font-medium text-ink-400 hover:text-white"
+              >
+                인화용으로 시작 →
+              </Link>
+            </div>
             <div className="mt-12 grid gap-8 md:grid-cols-2">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-studio-soft">집에서</p>
@@ -367,28 +395,6 @@ export default function HomePage() {
                   <li>인화비는 매장 · 관공서 제출용은 아닙니다</li>
                 </ol>
               </div>
-            </div>
-            <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3">
-              <Link
-                href="/photobox"
-                className="focus-ring inline-flex text-sm font-semibold text-studio-soft hover:underline"
-              >
-                포토박스 안내 →
-              </Link>
-              <a
-                href="https://printingbox.kr/store"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="focus-ring inline-flex text-sm font-semibold text-white/80 hover:underline"
-              >
-                내 주변 프린팅박스 찾기 →
-              </a>
-              <Link
-                href="/make?purpose=sheet"
-                className="focus-ring inline-flex text-sm font-semibold text-white/80 hover:underline"
-              >
-                인화용으로 시작 →
-              </Link>
             </div>
           </div>
         </section>

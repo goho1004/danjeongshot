@@ -53,20 +53,20 @@ export default function HelpPage() {
       </section>
 
       <section>
-        <h2 className="text-base font-semibold text-ink-950">인화 · 포토박스</h2>
+        <h2 className="text-base font-semibold text-ink-950">사진인화안내 · 프린팅박스</h2>
         <p className="mt-2 text-ink-700">
           배송은 없고, 레이아웃 PNG를{" "}
-          <Link href="/photobox" className="text-accent-deep underline">
-            포토박스 안내
+          <Link href="/print" className="text-accent-deep underline">
+            사진인화안내
           </Link>
-          대로 프린팅박스에서 뽑으면 됩니다.{" "}
+          대로 <strong>프린팅박스</strong>에서 뽑으면 됩니다.{" "}
           <a
             href="https://printingbox.kr/store"
             target="_blank"
             rel="noopener noreferrer"
             className="text-accent-deep underline"
           >
-            내 주변 기기 찾기 ↗
+            프린팅박스 위치 찾기 →
           </a>
         </p>
       </section>

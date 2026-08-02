@@ -53,8 +53,8 @@ export default function TermsPage() {
           실물 배송은 하지 않습니다. 인화용 레이아웃 PNG를 받아{" "}
           <strong>프린팅박스 등 포토 키오스크·인화 서비스</strong>에서 이용자가 직접 출력할 수
           있습니다. 안내는 사이트{" "}
-          <a href="/photobox" className="underline">
-            /photobox
+          <a href="/print" className="underline">
+            사진인화안내(/print)
           </a>
           를 참고하세요. 인화 비용·품질·기기 장애는 해당 매장·서비스의 책임 영역입니다. 특정
           키오스크와의 전용 연동은 현재
