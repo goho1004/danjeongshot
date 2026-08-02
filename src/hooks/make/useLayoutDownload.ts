@@ -162,5 +162,45 @@ export function useLayoutDownload(state: MakeStudioState) {
     }
   };
 
-  return { downloadLayout, redownloadOwnedLayout, saveLayoutReadyFile };
+  const deliverLayoutByEmail = async (email: string) => {
+    if (!paid || !orderId || !unlockToken || !downloaded) {
+      return { ok: false, message: "먼저 단정 PNG를 받은 뒤 보낼 수 있어요." };
+    }
+    if (!layoutSaveReady) {
+      return { ok: false, message: "먼저 인화 레이아웃을 준비해 주세요." };
+    }
+    const buf = await layoutSaveReady.blob.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]!);
+    }
+    const pngBase64 = btoa(binary);
+
+    const res = await fetch("/api/deliver/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        orderId,
+        unlockToken,
+        email,
+        kind: "layout",
+        pngBase64,
+        filename: layoutSaveReady.filename,
+      }),
+    });
+    const data = (await res.json()) as {
+      error?: string;
+      notice?: string;
+      unlockToken?: string;
+    };
+    if (!res.ok) {
+      return { ok: false, message: data.error || "이메일 발송에 실패했습니다." };
+    }
+    if (typeof data.unlockToken === "string") setUnlockToken(data.unlockToken);
+    setDownloadOk(data.notice || "레이아웃을 이메일로 보냈어요.");
+    return { ok: true, message: data.notice || "레이아웃을 이메일로 보냈어요." };
+  };
+
+  return { downloadLayout, redownloadOwnedLayout, saveLayoutReadyFile, deliverLayoutByEmail };
 }

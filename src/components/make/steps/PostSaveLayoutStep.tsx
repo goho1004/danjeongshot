@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import Link from "next/link";
 import TileDiagram from "@/components/TileDiagram";
 import InlineError from "@/components/make/InlineError";
+import EmailDeliverForm from "@/components/make/EmailDeliverForm";
 import type { LayoutSaveReady, SaveReady, Shot } from "@/lib/make/types";
 import {
   LAYOUT_UPSELL_ORDER,
@@ -10,6 +11,7 @@ import {
   type PrintSize,
 } from "@/lib/photoSheet";
 import { PRICE, type PackId } from "@/lib/purposes";
+import { PRINT_GUIDE, PRINTING_BOX } from "@/lib/printingBox";
 
 type PostSaveLayoutStepProps = {
   downloadOk: string | null;
@@ -37,6 +39,8 @@ type PostSaveLayoutStepProps = {
   extraShots: Shot[];
   extraPaidIds: string[];
   downloadExtra: (shot: Shot) => void;
+  deliverCleanByEmail: (email: string) => Promise<{ ok: boolean; message: string }>;
+  deliverLayoutByEmail: (email: string) => Promise<{ ok: boolean; message: string }>;
 };
 
 export default function PostSaveLayoutStep({
@@ -65,6 +69,8 @@ export default function PostSaveLayoutStep({
   extraShots,
   extraPaidIds,
   downloadExtra,
+  deliverCleanByEmail,
+  deliverLayoutByEmail,
 }: PostSaveLayoutStepProps) {
   return (
     <div className="rounded-2xl border border-accent/30 bg-accent-soft/40 p-5 space-y-4">
@@ -106,6 +112,18 @@ export default function PostSaveLayoutStep({
             >
               링크로 저장
             </a>
+            <EmailDeliverForm
+              disabled={downloading || !!extraBusyId || layoutBuying}
+              onSend={deliverCleanByEmail}
+            />
+          </div>
+        )}
+        {!saveReady && (
+          <div className="mt-2">
+            <EmailDeliverForm
+              disabled={downloading || !!extraBusyId || layoutBuying}
+              onSend={deliverCleanByEmail}
+            />
           </div>
         )}
         <InlineError at="download" errorAt={errorAt} message={error} />
@@ -144,6 +162,26 @@ export default function PostSaveLayoutStep({
               >
                 링크로 레이아웃 저장
               </a>
+              <EmailDeliverForm
+                disabled={layoutBuying}
+                onSend={deliverLayoutByEmail}
+              />
+              <p className="text-[11px] text-ink-500">
+                메일로 받은 뒤{" "}
+                <a
+                  href={PRINTING_BOX.storeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  {PRINTING_BOX.name}
+                </a>
+                에 올리거나{" "}
+                <Link href={PRINT_GUIDE.path} className="underline">
+                  {PRINT_GUIDE.label}
+                </Link>
+                를 보세요.
+              </p>
             </div>
           )}
 

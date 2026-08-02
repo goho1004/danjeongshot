@@ -142,12 +142,12 @@ const RULES: Rule[] = [
   {
     intent: "download_fail",
     confidence: "high",
-    keywords: ["다운로드 안돼", "다운이 안", "저장 안", "파일 없어", "버튼 안"],
+    keywords: ["다운로드 안돼", "다운이 안", "저장 안", "파일 없어", "버튼 안", "어디 저장", "못 찾"],
     refundHint: "maybe",
     actions: ["auto_reply", "escalate_human"],
     reply:
-      "다른 브라우저·시크릿 모드에서 다시 시도해 보시고, 주문번호를 남겨 주세요. 결제 후 다운로드 전 오류가 확인되면 재시도 또는 환불을 도와드립니다.",
-    agentNote: "기기/브라우저 이슈 흔함. 재발급 링크(추후) 또는 환불.",
+      "다른 브라우저·시크릿 모드에서 다시 시도해 보시고, 만들기에서 「이메일로 받기」로 메일함에 PNG를 받아 보세요. 주문번호를 남겨 주시면 확인합니다. 결제 후 다운로드·이메일 전 오류가 확인되면 재시도 또는 환불을 도와드립니다. 인화: /print",
+    agentNote: "기기/브라우저 이슈 흔함. 이메일 전달 유도 · 재발급 또는 환불.",
   },
   {
     intent: "kiosk_how",
@@ -170,8 +170,8 @@ const RULES: Rule[] = [
     refundHint: "n/a",
     actions: ["auto_reply"],
     reply:
-      "실물 배송은 없습니다. 인화용 레이아웃 PNG를 받은 뒤 프린팅박스에서 용지 4×6으로 출력하세요. 위치: https://printingbox.kr/store · 안내: /print (사진인화안내). 인화비·기기 품질은 매장·프린팅박스 영역입니다.",
-    agentNote: "배송·지정 키오스크 약속 금지. 프린팅박스·/print 링크.",
+      "실물 배송은 없습니다. 인화용 레이아웃 PNG를 받은 뒤 프린팅박스에서 용지 4×6으로 출력하세요. 위치: https://printingbox.kr/store · 쿠폰·이벤트: https://printingbox.kr/ · 안내: /print . 폰에서 파일을 못 찾으면 만들기 「이메일로 받기」. 인화비·기기 품질은 매장·프린팅박스 영역입니다.",
+    agentNote: "배송·지정 키오스크 약속 금지. 프린팅박스·/print·이메일 유도.",
   },
   {
     intent: "payment_fail",

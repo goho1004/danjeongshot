@@ -13,8 +13,9 @@ export const PRINT_GUIDE = {
 
 export const PRINTING_BOX = {
   name: "프린팅박스",
-  /** 공식 웹 */
+  /** 공식 웹 · 쿠폰·이벤트 */
   homeUrl: "https://printingbox.kr/",
+  eventsUrl: "https://printingbox.kr/",
   /** 내 주변 기기 찾기 */
   storeUrl: "https://printingbox.kr/store",
   /** 앱 (선택) */

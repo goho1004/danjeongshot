@@ -362,6 +362,14 @@ export default function HomePage() {
               >
                 프린팅박스 위치 찾기 →
               </a>
+              <a
+                href="https://printingbox.kr/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="focus-ring inline-flex rounded-full bg-white px-6 py-3 text-sm font-semibold text-ink-950 hover:bg-studio-soft"
+              >
+                프린팅박스 쿠폰·이벤트 →
+              </a>
               <Link
                 href="/print"
                 className="focus-ring inline-flex rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white hover:border-white"
@@ -375,6 +383,9 @@ export default function HomePage() {
                 인화용으로 시작 →
               </Link>
             </div>
+            <p className="mt-4 text-xs text-ink-500">
+              폰에서 파일을 못 찾으면 만들기에서 「이메일로 받기」를 쓰세요.
+            </p>
             <div className="mt-12 grid gap-8 md:grid-cols-2">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-studio-soft">집에서</p>

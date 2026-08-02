@@ -66,8 +66,18 @@ export default function HelpPage() {
             rel="noopener noreferrer"
             className="text-accent-deep underline"
           >
-            프린팅박스 위치 찾기 →
+            위치 찾기
           </a>
+          {" · "}
+          <a
+            href="https://printingbox.kr/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent-deep underline"
+          >
+            쿠폰·이벤트
+          </a>
+          . 폰에서 파일을 못 찾으면 만들기에서 <strong>이메일로 받기</strong>를 쓰세요.
         </p>
       </section>
 

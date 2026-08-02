@@ -211,5 +211,53 @@ export function useDownload(state: MakeStudioState, purposeId: string) {
     }
   };
 
-  return { download, saveReadyFile, downloadExtra, applyCleanToShot };
+  const deliverCleanByEmail = async (email: string) => {
+    if (!paid || !orderId || !unlockToken) {
+      return { ok: false, message: "결제·주문 정보가 없습니다." };
+    }
+    const shot =
+      (downloaded && primaryShotId && shots.find((s) => s.id === primaryShotId)) ||
+      selectedShot;
+    if (!shot) {
+      return { ok: false, message: "받을 컷을 먼저 골라 주세요." };
+    }
+    const vault = shot.vault || previewVault;
+    if (!vault && !previewAssetId) {
+      return { ok: false, message: "미리보기 세션이 없습니다. 다시 만들기 후 받아 주세요." };
+    }
+
+    const filename = `danjeongshot-${purposeId}.png`;
+    const res = await fetch("/api/deliver/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        orderId,
+        unlockToken,
+        email,
+        kind: "clean",
+        previewVault: vault || undefined,
+        shotId: shot.id,
+        mode: downloaded ? "again" : "primary",
+        filename,
+      }),
+    });
+    const data = (await res.json()) as {
+      error?: string;
+      notice?: string;
+      unlockToken?: string;
+    };
+    if (!res.ok) {
+      return { ok: false, message: data.error || "이메일 발송에 실패했습니다." };
+    }
+    if (typeof data.unlockToken === "string") setUnlockToken(data.unlockToken);
+    if (!downloaded) {
+      setDownloaded(true);
+      setPrimaryShotId(shot.id);
+      setSavedOnce(true);
+    }
+    setDownloadOk(data.notice || "이메일로 보냈어요.");
+    return { ok: true, message: data.notice || "이메일로 보냈어요." };
+  };
+
+  return { download, saveReadyFile, downloadExtra, applyCleanToShot, deliverCleanByEmail };
 }

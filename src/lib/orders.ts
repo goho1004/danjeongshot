@@ -32,6 +32,8 @@ export type Order = {
   /** 결제 후 컷이 클라이언트에 전달된 시각(화면 열람·캡처 가능 시점) */
   cutDeliveredAt: number | null;
   downloadedAt: number | null;
+  /** 제공 개시 채널 · 이메일 발송 포함 */
+  deliverChannel: "download" | "email" | null;
   redoUsed: number;
   asvUsed: number;
   /** 팩 포함 1장 이후, 추가로 결제한 컷 id */
@@ -68,7 +70,7 @@ function secretKey(): Buffer {
 }
 
 type SealBody = {
-  v: 7;
+  v: 8;
   id: string;
   purposeId: string;
   packId: PackId;
@@ -79,6 +81,7 @@ type SealBody = {
   previewAssetId: string | null;
   cutDeliveredAt: number | null;
   downloadedAt: number | null;
+  deliverChannel: "download" | "email" | null;
   redoUsed: number;
   asvUsed: number;
   extraPaidShotIds: string[];
@@ -105,7 +108,7 @@ function normalizePackId(
 
 function sealPayload(o: Omit<Order, "unlockToken">): string {
   const body: SealBody = {
-    v: 7,
+    v: 8,
     id: o.id,
     purposeId: o.purposeId,
     packId: o.packId === "plus" ? "plus" : "basic",
@@ -116,6 +119,7 @@ function sealPayload(o: Omit<Order, "unlockToken">): string {
     previewAssetId: o.previewAssetId,
     cutDeliveredAt: o.cutDeliveredAt ?? null,
     downloadedAt: o.downloadedAt,
+    deliverChannel: o.deliverChannel ?? null,
     redoUsed: o.redoUsed,
     asvUsed: o.asvUsed,
     extraPaidShotIds: o.extraPaidShotIds ?? [],
@@ -179,11 +183,12 @@ export function unsealOrder(token: string): Order | null {
       v: number;
       layoutPaidKeys?: string[];
     };
-    if (data.v < 1 || data.v > 7 || !data.id) return null;
+    if (data.v < 1 || data.v > 8 || !data.id) return null;
     if (Date.now() - (data.createdAt || 0) > 1000 * 60 * 60 * 24 * 7) return null;
     const layout = normalizeLayoutFields(data as unknown as Record<string, unknown>);
     const legacy = data as SealBody & {
       cutDeliveredAt?: number | null;
+      deliverChannel?: "download" | "email" | null;
       partnerCode?: string | null;
       ratePctSnapshot?: number | null;
       agentTypeSnapshot?: AgentType | null;
@@ -204,6 +209,7 @@ export function unsealOrder(token: string): Order | null {
       previewAssetId: data.previewAssetId ?? null,
       cutDeliveredAt: legacy.cutDeliveredAt ?? null,
       downloadedAt: data.downloadedAt ?? null,
+      deliverChannel: legacy.deliverChannel ?? null,
       redoUsed: Number(data.redoUsed) || 0,
       asvUsed: Number(data.asvUsed) || 0,
       extraPaidShotIds: Array.isArray(data.extraPaidShotIds)
@@ -285,6 +291,7 @@ export function createSandboxOrder(input: {
     previewAssetId: input.previewAssetId ?? null,
     cutDeliveredAt: null,
     downloadedAt: null,
+    deliverChannel: null,
     redoUsed: 0,
     asvUsed: 0,
     extraPaidShotIds: [],
@@ -338,10 +345,15 @@ export function verifyUnlock(orderId: string, token: string): boolean {
   return !!o && o.paid;
 }
 
-export function markDownloaded(orderId: string, token: string): Order | null {
+export function markDownloaded(
+  orderId: string,
+  token: string,
+  channel: "download" | "email" = "download"
+): Order | null {
   const o = resolveOrder(orderId, token);
   if (!o || !o.paid) return null;
   if (!o.downloadedAt) o.downloadedAt = Date.now();
+  if (!o.deliverChannel) o.deliverChannel = channel;
   return cache(o);
 }
 

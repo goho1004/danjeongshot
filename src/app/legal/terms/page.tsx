@@ -39,7 +39,8 @@ export default function TermsPage() {
       <section>
         <h2 className="text-base font-semibold text-ink-950">4. 제공 개시 · 다운로드 · 화면 캡처</h2>
         <p className="mt-2">
-          결제 후 생성된 컷이 화면에 표시되거나, 클린 PNG를 다운로드(저장)하면{" "}
+          결제 후 생성된 컷이 화면에 표시되거나, 클린 PNG를 다운로드(저장)하거나,{" "}
+          <strong>이메일로 전달</strong>하면{" "}
           <strong>디지털콘텐츠 제공이 개시</strong>된 것으로 봅니다. 화면 캡처·촬영으로 이미지를
           확보한 뒤 「다운로드하지 않았다」고 환불을 청구하는 행위는 금지되며, 환불 거절·이용 제한
           사유가 될 수 있습니다. 상세는 「환불·청약철회」 정책을 따릅니다. 결제 후 다시 만들기·A/S

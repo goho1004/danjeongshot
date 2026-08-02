@@ -1,4 +1,5 @@
 import InlineError from "@/components/make/InlineError";
+import EmailDeliverForm from "@/components/make/EmailDeliverForm";
 import type { SaveReady } from "@/lib/make/types";
 
 type PostPaySaveStepProps = {
@@ -11,6 +12,7 @@ type PostPaySaveStepProps = {
   setDownloadOk: (v: string | null) => void;
   download: () => void;
   downloading: boolean;
+  deliverCleanByEmail: (email: string) => Promise<{ ok: boolean; message: string }>;
 };
 
 export default function PostPaySaveStep({
@@ -23,6 +25,7 @@ export default function PostPaySaveStep({
   setDownloadOk,
   download,
   downloading,
+  deliverCleanByEmail,
 }: PostPaySaveStepProps) {
   return (
     <div className="rounded-2xl border border-accent/30 bg-accent-soft/40 p-5 space-y-4">
@@ -30,7 +33,8 @@ export default function PostPaySaveStep({
         <div>
           <p className="text-sm font-semibold text-accent-deep">7. 파일로 저장</p>
           <p className="mt-1 text-xs text-ink-500">
-            서버에서 파일을 준비했어요. 저장을 마친 뒤 인화 레이아웃으로 이어가요.
+            기기에 저장하거나, 폰에서 파일을 못 찾을 땐 이메일로 받으세요. 저장·발송 후 인화
+            레이아웃으로 이어가요.
           </p>
         </div>
         {downloadOk && !errorAt && (
@@ -46,7 +50,7 @@ export default function PostPaySaveStep({
               onClick={saveReadyFile}
               className="w-full rounded-xl bg-accent py-3.5 text-sm font-semibold text-white"
             >
-              파일로 저장 · PNG
+              기기에 저장 · PNG
             </button>
             <a
               href={saveReady.url}
@@ -59,16 +63,29 @@ export default function PostPaySaveStep({
             >
               링크를 눌러 저장 (사파리·백업)
             </a>
+            <EmailDeliverForm
+              disabled={downloading}
+              onSend={deliverCleanByEmail}
+            />
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={download}
-            disabled={downloading}
-            className="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            {downloading ? "파일 준비 중…" : "다시 준비하기"}
-          </button>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={download}
+              disabled={downloading}
+              className="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {downloading ? "파일 준비 중…" : "다시 준비하기"}
+            </button>
+            <EmailDeliverForm
+              disabled={downloading}
+              onSend={async (email) => {
+                const r = await deliverCleanByEmail(email);
+                return r;
+              }}
+            />
+          </div>
         )}
       </div>
     </div>

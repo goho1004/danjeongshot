@@ -23,9 +23,10 @@ export default function PrintGuidePage() {
         <p className="text-xs font-semibold uppercase tracking-wider text-studio-soft">
           {PRINTING_BOX.name}
         </p>
-        <h2 className="mt-2 font-display text-2xl">내 주변 기기에서 바로 인화</h2>
+        <h2 className="mt-2 font-display text-2xl">위치 찾기 · 쿠폰·이벤트</h2>
         <p className="mt-2 text-sm text-ink-300">
-          편의점·지하철·마트 무인 기기 · 앱/웹에서 업로드 → 인쇄코드 → 출력
+          편의점·지하철·마트 무인 기기 · 앱/웹에서 업로드 → 인쇄코드 → 출력. 메인에서 진행 중인
+          쿠폰·이벤트도 확인하세요.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <a
@@ -37,17 +38,25 @@ export default function PrintGuidePage() {
             {PRINTING_BOX.name} 위치 찾기 →
           </a>
           <a
-            href={PRINTING_BOX.homeUrl}
+            href={PRINTING_BOX.eventsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="focus-ring inline-flex rounded-full border border-white/30 px-5 py-3 text-sm font-medium text-white hover:border-white"
+            className="focus-ring inline-flex rounded-full bg-white px-5 py-3 text-sm font-semibold text-ink-950 hover:bg-studio-soft"
           >
-            {PRINTING_BOX.name} 홈
+            쿠폰·이벤트 보러가기 →
           </a>
         </div>
         <p className="mt-4 text-xs text-ink-400">
-          외부 서비스 · 인화비·품질·기기는 {PRINTING_BOX.name}·매장 영역 · 고객센터{" "}
+          외부 서비스 · 쿠폰·요금·품질은 {PRINTING_BOX.name}·매장 영역 · 고객센터{" "}
           {PRINTING_BOX.supportPhone}
+        </p>
+      </section>
+
+      <section className="rounded-xl border border-ink-200 bg-ink-50/80 px-4 py-3 text-sm text-ink-700">
+        <p className="font-semibold text-ink-900">폰에서 파일을 못 찾을 때</p>
+        <p className="mt-1 text-xs text-ink-600">
+          만들기에서 <strong>이메일로 받기</strong>를 쓰면 메일함에서 PNG를 열어{" "}
+          {PRINTING_BOX.name}에 올릴 수 있어요. 기기에 저장과 병행됩니다.
         </p>
       </section>
 

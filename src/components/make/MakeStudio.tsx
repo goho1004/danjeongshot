@@ -91,8 +91,11 @@ export default function MakeStudio() {
     state.subjectLook,
     state.subjectSeason
   );
-  const { download, saveReadyFile, downloadExtra } = useDownload(state, state.purposeId);
-  const { downloadLayout, redownloadOwnedLayout, saveLayoutReadyFile } =
+  const { download, saveReadyFile, downloadExtra, deliverCleanByEmail } = useDownload(
+    state,
+    state.purposeId
+  );
+  const { downloadLayout, redownloadOwnedLayout, saveLayoutReadyFile, deliverLayoutByEmail } =
     useLayoutDownload(state);
 
   const [loadingIdx, setLoadingIdx] = useState(0);
@@ -264,6 +267,7 @@ export default function MakeStudio() {
           setDownloadOk={state.setDownloadOk}
           download={download}
           downloading={state.downloading}
+          deliverCleanByEmail={deliverCleanByEmail}
         />
       )}
 
@@ -294,6 +298,8 @@ export default function MakeStudio() {
           extraShots={state.extraShots}
           extraPaidIds={state.extraPaidIds}
           downloadExtra={downloadExtra}
+          deliverCleanByEmail={deliverCleanByEmail}
+          deliverLayoutByEmail={deliverLayoutByEmail}
         />
       )}
 
