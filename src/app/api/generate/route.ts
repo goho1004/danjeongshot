@@ -9,6 +9,12 @@ import {
   sanitizeExtraPrompt,
 } from "@/lib/purposes";
 import {
+  EASTER_LABEL,
+  preferCleanShotIndex,
+  PREVIEW_SHOT_COUNT,
+  rollEasterSlot,
+} from "@/lib/easterEgg";
+import {
   canRunAsv,
   canRunRedo,
   markAsv,
@@ -24,11 +30,13 @@ import {
 } from "@/lib/previewAssets";
 import { sealPreviewVault } from "@/lib/previewVault";
 import { gatePaidGenerate } from "@/lib/generateGate";
+import { burnEasterWatermark } from "@/lib/watermark";
 import {
   STUDIO_BUSY,
   STUDIO_RETRY,
   toUserFacingGenerateError,
 } from "@/lib/userFacingErrors";
+import { ensurePngBuffer } from "@/lib/ensurePng";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
@@ -38,6 +46,19 @@ type ModelResult =
   | { success: false; error: string };
 
 type Stage = "preview" | "redo" | "asv";
+
+type ShotPayload = {
+  success: true;
+  imageUrl: string;
+  /** 이스터 슬롯: vault 클린과 동일. 표시·저장은 imageUrl(워터마크). 제거=이 URL/vault */
+  imageUrlClean?: string;
+  timeSec: string;
+  label: string;
+  easter?: boolean;
+  easterVariant?: "glyph" | "animal";
+  watermark?: "easter" | "none";
+  previewVault: string;
+};
 
 function cleanDataUrl(png: Buffer): string {
   return `data:image/png;base64,${png.toString("base64")}`;
@@ -87,6 +108,12 @@ function parseStage(raw: unknown): Stage {
   return "preview";
 }
 
+/** 프리뷰 3컷: 0=베이스, 1·2=미세 변형 */
+function previewVariantIndex(slot: number): number | undefined {
+  if (slot <= 0) return undefined;
+  return (slot - 1) % 2;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -97,6 +124,7 @@ export async function POST(req: NextRequest) {
     const subjectSeason = parseSubjectSeason(body.subjectSeason);
     const orderId = String(body.orderId ?? "");
     const unlockToken = String(body.unlockToken ?? "");
+    const easterOptOut = body.easterOptOut === true || body.cleanOnly === true;
 
     if (!imageBase64) {
       return NextResponse.json({ error: "셀카를 먼저 업로드해 주세요." }, { status: 400 });
@@ -165,11 +193,18 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.GEMINI_API_KEY;
     const forceMock = process.env.MOCK_GENERATE === "1" || !apiKey || apiKey.trim() === "";
 
-    const variantIndex = stage === "preview" ? undefined : stage === "redo" ? 0 : 1;
-    const label =
-      stage === "preview" ? "첫 컷" : stage === "redo" ? "다시 만든 컷" : "A/S 서비스 컷";
+    const extraPresetIds = parseExtraPresetIds(body.extraPresetIds);
+    const extraCustom = sanitizeExtraPrompt(body.extraCustom);
+    const legacyExtra =
+      !extraPresetIds.length && !extraCustom
+        ? sanitizeExtraPrompt(body.extraPrompt)
+        : "";
 
-    const finishPaid = async (cleanPng: Buffer, timeSec: string) => {
+    const finishPaidSingle = async (
+      cleanPng: Buffer,
+      timeSec: string,
+      label: string
+    ) => {
       let order =
         stage === "redo"
           ? markRedo(orderId, unlockToken)
@@ -182,7 +217,6 @@ export async function POST(req: NextRequest) {
           { status: 403 }
         );
       }
-      // 서버리스: 메모리가 비면 replace가 실패 → vault + 재저장으로 인스턴스 복구
       if (order.previewAssetId) {
         const replaced = replaceCleanAsset(order.previewAssetId, orderId, cleanPng);
         if (!replaced) {
@@ -206,7 +240,6 @@ export async function POST(req: NextRequest) {
         mock: forceMock,
         watermark: "none",
         shot: { success: true, imageUrl, timeSec, label },
-        // 첫 컷 응답 호환 (클라이언트가 preview 키를 볼 수 있음)
         preview: { success: true, imageUrl, timeSec, label },
         previewAssetId: delivered.previewAssetId,
         previewVault,
@@ -217,29 +250,229 @@ export async function POST(req: NextRequest) {
       });
     };
 
+    const finishPaidPreview = async (
+      shotResults: {
+        cleanPng: Buffer;
+        timeSec: string;
+        easter: boolean;
+        easterVariant?: "glyph" | "animal";
+      }[]
+    ) => {
+      let order = resolveOrder(orderId, unlockToken);
+      if (!order?.paid) {
+        return NextResponse.json(
+          { error: "결제 확인 후 만들 수 있습니다." },
+          { status: 403 }
+        );
+      }
+      const flags = shotResults.map((s) => s.easter);
+      const primaryIdx = preferCleanShotIndex(flags);
+      const primary = shotResults[primaryIdx];
+
+      if (order.previewAssetId) {
+        const replaced = replaceCleanAsset(
+          order.previewAssetId,
+          orderId,
+          primary.cleanPng
+        );
+        if (!replaced) {
+          storePreviewAsset({
+            cleanPng: primary.cleanPng,
+            purposeId,
+            id: order.previewAssetId,
+          });
+          bindPreviewToOrder(order.previewAssetId, orderId);
+        }
+      } else {
+        const asset = storePreviewAsset({ cleanPng: primary.cleanPng, purposeId });
+        bindPreviewToOrder(asset.id, orderId);
+        order = putOrder({ ...order, previewAssetId: asset.id });
+      }
+      const delivered = markCutDelivered(order.id, order.unlockToken) || order;
+
+      const shots: ShotPayload[] = [];
+      for (let i = 0; i < shotResults.length; i++) {
+        const s = shotResults[i];
+        const vault = sealPreviewVault({ cleanPng: s.cleanPng, purposeId });
+        const label = s.easter ? EASTER_LABEL : `컷 ${i + 1}`;
+        if (s.easter) {
+          const variant = s.easterVariant ?? "glyph";
+          const burned = await burnEasterWatermark(s.cleanPng, variant);
+          shots.push({
+            success: true as const,
+            imageUrl: burned.markedDataUrl,
+            imageUrlClean: cleanDataUrl(s.cleanPng),
+            timeSec: s.timeSec,
+            label,
+            easter: true,
+            easterVariant: variant,
+            watermark: "easter",
+            previewVault: vault,
+          });
+        } else {
+          shots.push({
+            success: true as const,
+            imageUrl: cleanDataUrl(s.cleanPng),
+            timeSec: s.timeSec,
+            label,
+            watermark: "none",
+            previewVault: vault,
+          });
+        }
+      }
+
+      const primaryShot = shots[primaryIdx];
+      return NextResponse.json({
+        stage,
+        mock: forceMock,
+        watermark: "none",
+        shots,
+        selectedIndex: primaryIdx,
+        shot: {
+          success: true,
+          imageUrl: primaryShot.imageUrl,
+          timeSec: primaryShot.timeSec,
+          label: primaryShot.label,
+          easter: primaryShot.easter,
+        },
+        preview: {
+          success: true,
+          imageUrl: primaryShot.imageUrl,
+          timeSec: primaryShot.timeSec,
+          label: primaryShot.label,
+        },
+        previewAssetId: delivered.previewAssetId,
+        previewVault: primaryShot.previewVault,
+        unlockToken: delivered.unlockToken,
+        redoUsed: delivered.redoUsed,
+        asvUsed: delivered.asvUsed,
+        cutDeliveredAt: delivered.cutDeliveredAt,
+        easter: {
+          hit: flags.some(Boolean),
+          slot: flags.findIndex(Boolean) >= 0 ? flags.findIndex(Boolean) : null,
+        },
+      });
+    };
+
+    // —— preview: 3컷 클린 생성 → 당첨 1슬롯만 워터마크 합성 ——
+    if (stage === "preview") {
+      const roll = rollEasterSlot({ optOut: easterOptOut });
+      const slotMeta = Array.from({ length: PREVIEW_SHOT_COUNT }, (_, i) => {
+        const isEaster = roll.hit && roll.slot === i;
+        return {
+          variantIndex: previewVariantIndex(i),
+          easter: isEaster,
+          easterVariant: isEaster ? roll.variant ?? undefined : undefined,
+          label: isEaster ? EASTER_LABEL : `컷 ${i + 1}`,
+        };
+      });
+
+      if (forceMock) {
+        const mocked = await Promise.all(
+          slotMeta.map(async (m) => {
+            const cleanPng = await mockCleanPng(m.label);
+            return {
+              cleanPng,
+              timeSec: "0.1",
+              easter: m.easter,
+              easterVariant: m.easterVariant,
+            };
+          })
+        );
+        return finishPaidPreview(mocked);
+      }
+
+      const ai = new GoogleGenAI({ apiKey: apiKey! });
+      const modelChain: { model: string; imageSize: "1K" }[] = [
+        { model: "gemini-3.1-flash-lite-image", imageSize: "1K" },
+      ];
+
+      const callLite = async (v: number | undefined): Promise<ModelResult> => {
+        const prompt = buildPrompt(purposeId, v, {
+          look: subjectLook,
+          season: subjectSeason,
+          extraPresetIds,
+          extraCustom: extraCustom || undefined,
+          extra: legacyExtra || undefined,
+        });
+        const start = Date.now();
+        for (const { model, imageSize } of modelChain) {
+          try {
+            const interaction = await ai.interactions.create({
+              model,
+              input: [
+                { type: "text", text: prompt },
+                { type: "image", data: rawBase64, mime_type: mimeType },
+              ],
+              response_format: {
+                type: "image",
+                aspect_ratio: "3:4",
+                image_size: imageSize,
+              },
+            });
+            const timeSec = ((Date.now() - start) / 1000).toFixed(1);
+            if (interaction?.output_image?.data) {
+              const cleanBuf = await ensurePngBuffer(
+                Buffer.from(interaction.output_image.data, "base64")
+              );
+              return {
+                success: true as const,
+                imageUrl: cleanDataUrl(cleanBuf),
+                timeSec,
+                cleanPng: cleanBuf,
+              };
+            }
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(`[generate] provider:`, msg.slice(0, 240));
+          }
+        }
+        return { success: false, error: STUDIO_BUSY };
+      };
+
+      const results = await Promise.all(
+        slotMeta.map((m) => callLite(m.variantIndex))
+      );
+
+      const finalized: {
+        cleanPng: Buffer;
+        timeSec: string;
+        easter: boolean;
+        easterVariant?: "glyph" | "animal";
+      }[] = [];
+      for (let i = 0; i < results.length; i++) {
+        const r = results[i];
+        if (!r.success || !r.cleanPng) {
+          return NextResponse.json(
+            { error: STUDIO_BUSY, code: "STUDIO_BUSY" },
+            { status: 503 }
+          );
+        }
+        finalized.push({
+          cleanPng: r.cleanPng,
+          timeSec: r.timeSec,
+          easter: slotMeta[i].easter,
+          easterVariant: slotMeta[i].easterVariant,
+        });
+      }
+      return finishPaidPreview(finalized);
+    }
+
+    // —— redo / asv: 단일 컷 (이스터 ✗) ——
+    const variantIndex = stage === "redo" ? 0 : 1;
+    const label = stage === "redo" ? "다시 만든 컷" : "A/S 서비스 컷";
+
     if (forceMock) {
       const cleanPng = await mockCleanPng(label);
-      return finishPaid(cleanPng, "0.1");
+      return finishPaidSingle(cleanPng, "0.1", label);
     }
 
     const ai = new GoogleGenAI({ apiKey: apiKey! });
-
-    /**
-     * 정책: 전 구간 gemini-3.1-flash-lite-image @ 1K만.
-     * lite@2K는 미지원(404). flash/pro 폴백 금지(원가·품질 정책).
-     */
     const modelChain: { model: string; imageSize: "1K" }[] = [
       { model: "gemini-3.1-flash-lite-image", imageSize: "1K" },
     ];
 
     const callLite = async (v?: number): Promise<ModelResult> => {
-      const extraPresetIds = parseExtraPresetIds(body.extraPresetIds);
-      const extraCustom = sanitizeExtraPrompt(body.extraCustom);
-      // 레거시: 클라이언트가 합친 extraPrompt만 보낸 경우
-      const legacyExtra =
-        !extraPresetIds.length && !extraCustom
-          ? sanitizeExtraPrompt(body.extraPrompt)
-          : "";
       const prompt = buildPrompt(purposeId, v, {
         look: subjectLook,
         season: subjectSeason,
@@ -248,8 +481,6 @@ export async function POST(req: NextRequest) {
         extra: legacyExtra || undefined,
       });
       const start = Date.now();
-      const errors: string[] = [];
-
       for (const { model, imageSize } of modelChain) {
         try {
           const interaction = await ai.interactions.create({
@@ -266,27 +497,22 @@ export async function POST(req: NextRequest) {
           });
           const timeSec = ((Date.now() - start) / 1000).toFixed(1);
           if (interaction?.output_image?.data) {
-            const cleanBuf = Buffer.from(interaction.output_image.data, "base64");
+            const cleanBuf = await ensurePngBuffer(
+              Buffer.from(interaction.output_image.data, "base64")
+            );
             return {
               success: true as const,
-              imageUrl: `data:image/png;base64,${interaction.output_image.data}`,
+              imageUrl: cleanDataUrl(cleanBuf),
               timeSec,
               cleanPng: cleanBuf,
             };
           }
-          errors.push("no_image");
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          // 원문은 서버 로그만 — 클라이언트로 절대 전달 금지
           console.warn(`[generate] provider:`, msg.slice(0, 240));
-          errors.push("provider");
         }
       }
-
-      return {
-        success: false,
-        error: STUDIO_BUSY,
-      };
+      return { success: false, error: STUDIO_BUSY };
     };
 
     const result = await callLite(variantIndex);
@@ -297,8 +523,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 결제 후 컷은 워터마크 없이 클린본만
-    return finishPaid(result.cleanPng, result.timeSec);
+    return finishPaidSingle(result.cleanPng, result.timeSec, label);
   } catch (err) {
     console.error("[generate] unhandled", err instanceof Error ? err.message : err);
     return NextResponse.json(

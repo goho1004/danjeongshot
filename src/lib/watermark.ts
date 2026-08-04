@@ -1,12 +1,25 @@
 /**
  * 결제 전 미리보기용 — 옅은 서버 번인 워터마크.
  * 머리카락 근처·목 근처 두 곳, 작게·흐리게 (얼굴 중앙은 비움).
+ * 이스터: 희소 슬롯용 이질 마크 (제거 = vault 클린 PNG).
  */
 
 import sharp from "sharp";
+import {
+  easterWatermarkSvg,
+  type EasterVariant,
+} from "@/lib/easterEgg";
 
 export type Watermarked = {
   previewDataUrl: string;
+  cleanPng: Buffer;
+};
+
+export type EasterWatermarked = {
+  /** 워터마크 합성본 (표시·다운로드용) */
+  markedPng: Buffer;
+  markedDataUrl: string;
+  /** 원본 클린 (vault) */
   cleanPng: Buffer;
 };
 
@@ -65,5 +78,35 @@ export async function burnSubtleWatermark(
   return {
     cleanPng,
     previewDataUrl: `data:image/png;base64,${marked.toString("base64")}`,
+  };
+}
+
+/** 이스터 슬롯 — 얼굴은 클린, 이질감은 오버레이만. vault에는 cleanPng 보관. */
+export async function burnEasterWatermark(
+  input: Buffer | string,
+  variant: EasterVariant = "glyph"
+): Promise<EasterWatermarked> {
+  let buf: Buffer;
+  if (typeof input === "string") {
+    const raw = input.includes("base64,") ? input.split("base64,")[1] : input;
+    buf = Buffer.from(raw, "base64");
+  } else {
+    buf = input;
+  }
+
+  const cleanPng = await sharp(buf, { failOn: "none" }).png().toBuffer();
+  const meta = await sharp(cleanPng, { failOn: "none" }).metadata();
+  const width = meta.width || 768;
+  const height = meta.height || 1024;
+
+  const markedPng = await sharp(cleanPng)
+    .composite([{ input: easterWatermarkSvg(width, height, variant), top: 0, left: 0 }])
+    .png()
+    .toBuffer();
+
+  return {
+    cleanPng,
+    markedPng,
+    markedDataUrl: `data:image/png;base64,${markedPng.toString("base64")}`,
   };
 }

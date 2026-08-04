@@ -3,6 +3,7 @@
 > **잠금일:** 2026-08-02  
 > **출처:** 회장님 대화 — B2B 인력 · 인센·원가 · 모바일 대리 · 정산 · 카피  
 > **허브:** [`MARKETING.md`](MARKETING.md)  
+> **GTM(당근 1순위·글로벌):** [`GO_TO_MARKET.md`](GO_TO_MARKET.md)  
 > **한 장 맵:** [`MARKETPLACE.md`](MARKETPLACE.md)  
 > **상세 대리:** [`AGENT_PARTNER_PLAN.md`](AGENT_PARTNER_PLAN.md)  
 > **브로슈어:** [`brochure/`](brochure/)  

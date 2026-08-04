@@ -1,14 +1,12 @@
 /** 유저 단계 — UI는 현재 단계만 렌더
- *  pay-first: 셀카 → 팩·결제 → 첫 컷 → 받기
+ *  pay-first: 셀카 → 팩·결제 → 첫 컷 → 받기(단일 패널)
  */
 
 export type MakeFlowStep =
   | "setup"
   | "checkout"
   | "paidFirst"
-  | "paidFetch"
-  | "paidSave"
-  | "postSave";
+  | "paidDone";
 
 export type MakeFlowInput = {
   hasSelfie: boolean;
@@ -19,12 +17,10 @@ export type MakeFlowInput = {
 };
 
 export function resolveMakeFlowStep(input: MakeFlowInput): MakeFlowStep {
-  const { hasSelfie, hasPreview, paid, downloaded, savedOnce } = input;
+  const { hasSelfie, hasPreview, paid } = input;
   if (!paid) return hasSelfie ? "checkout" : "setup";
   if (!hasPreview) return "paidFirst";
-  if (!downloaded) return "paidFetch";
-  if (!savedOnce) return "paidSave";
-  return "postSave";
+  return "paidDone";
 }
 
 export function canShowLayout(input: {

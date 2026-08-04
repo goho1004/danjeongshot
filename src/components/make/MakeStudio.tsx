@@ -1,17 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import ShootTips from "@/components/ShootTips";
-import { PRINT_GUIDE, PRINTING_BOX } from "@/lib/printingBox";
 import PurposeUploadStep from "@/components/make/steps/PurposeUploadStep";
 import PreviewStep from "@/components/make/steps/PreviewStep";
 import CheckoutStep from "@/components/make/steps/CheckoutStep";
 import FirstCutButton from "@/components/make/steps/FirstCutButton";
-import PostPayFetchStep from "@/components/make/steps/PostPayFetchStep";
-import PostPaySaveStep from "@/components/make/steps/PostPaySaveStep";
-import PostSaveLayoutStep from "@/components/make/steps/PostSaveLayoutStep";
+import PaidDonePanel from "@/components/make/steps/PaidDonePanel";
 import { useMakeStudioState } from "@/hooks/make/useMakeStudioState";
 import { useSessionRestore } from "@/hooks/make/useSessionRestore";
 import { usePersistPaidSession } from "@/hooks/make/usePersistPaidSession";
@@ -37,8 +33,9 @@ export default function MakeStudio() {
   const initialPurpose = PURPOSES.some((p) => p.id === initialRaw) ? initialRaw : "resume";
 
   const state = useMakeStudioState(initialPurpose);
-  useSessionRestore(state);
-  usePersistPaidSession(state);
+  const [layoutSavedOnce, setLayoutSavedOnce] = useState(false);
+  useSessionRestore(state, { setLayoutSavedOnce });
+  usePersistPaidSession(state, { layoutSavedOnce });
 
   useEffect(() => {
     const raw =
@@ -95,8 +92,12 @@ export default function MakeStudio() {
     state,
     state.purposeId
   );
-  const { downloadLayout, redownloadOwnedLayout, saveLayoutReadyFile, deliverLayoutByEmail } =
-    useLayoutDownload(state);
+  const {
+    downloadLayout,
+    redownloadOwnedLayout,
+    prepareAndSaveDefaultLayout,
+    deliverLayoutByEmail,
+  } = useLayoutDownload(state);
 
   const [loadingIdx, setLoadingIdx] = useState(0);
   const [nudgeIdx] = useState(() => Math.floor(Math.random() * PAY_NUDGE_LINES.length));
@@ -118,7 +119,8 @@ export default function MakeStudio() {
   }, [state.busyKind, lines.length]);
 
   useEffect(() => {
-    if (!state.includeLayout || !state.selectedUrl || !state.downloaded) {
+    const wantsPrintPreview = state.includeLayout || state.savedOnce;
+    if (!wantsPrintPreview || !state.selectedUrl || !state.downloaded) {
       if (!state.downloaded) {
         state.setLayoutUrl(null);
       }
@@ -143,7 +145,13 @@ export default function MakeStudio() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mirror original deps
-  }, [state.includeLayout, state.selectedUrl, state.printSizeId, state.downloaded]);
+  }, [
+    state.includeLayout,
+    state.savedOnce,
+    state.selectedUrl,
+    state.printSizeId,
+    state.downloaded,
+  ]);
 
   const flowStep = resolveMakeFlowStep({
     hasSelfie: !!state.selfie,
@@ -186,7 +194,6 @@ export default function MakeStudio() {
         errorAt={state.errorAt}
       />
 
-      {/* 결제창을 초록 버튼보다 위에 — 보이던 그 카드 */}
       {!state.paid && (
         <CheckoutStep
           nudgeIdx={nudgeIdx}
@@ -228,17 +235,41 @@ export default function MakeStudio() {
           setSelectedShotId={state.setSelectedShotId}
           setPreviewVault={state.setPreviewVault}
           mock={state.mock}
+          selfie={state.selfie}
         />
       )}
 
-      {flowStep === "paidFetch" && (
-        <PostPayFetchStep
+      {flowStep === "paidDone" && (
+        <PaidDonePanel
+          packId={state.packId}
+          includeLayout={state.includeLayout}
+          downloaded={state.downloaded}
+          savedOnce={state.savedOnce}
+          setSavedOnce={state.setSavedOnce}
+          layoutSavedOnce={layoutSavedOnce}
+          setLayoutSavedOnce={setLayoutSavedOnce}
+          downloadOk={state.downloadOk}
+          setDownloadOk={state.setDownloadOk}
+          error={state.error}
+          errorAt={state.errorAt}
           busyKind={state.busyKind}
           loadingLines={lines}
           loadingIdx={loadingIdx}
-          download={download}
           downloading={state.downloading}
+          layoutBuying={state.layoutBuying}
+          extraBusyId={state.extraBusyId}
           selectedUrl={state.selectedUrl}
+          saveReady={state.saveReady}
+          layoutSaveReady={state.layoutSaveReady}
+          layoutUrl={state.layoutUrl}
+          layoutBusy={state.layoutBusy}
+          primaryShotId={state.primaryShotId}
+          shots={state.shots}
+          download={download}
+          saveReadyFile={saveReadyFile}
+          prepareAndSaveDefaultLayout={prepareAndSaveDefaultLayout}
+          deliverCleanByEmail={deliverCleanByEmail}
+          deliverLayoutByEmail={deliverLayoutByEmail}
           redoUsed={state.redoUsed}
           asvUsed={state.asvUsed}
           regenSelfie={state.regenSelfie}
@@ -246,93 +277,24 @@ export default function MakeStudio() {
           regenInputRef={state.regenInputRef}
           onRegenFile={onRegenFile}
           runPaidRegen={runPaidRegen}
-          error={state.error}
-          errorAt={state.errorAt}
           subjectLook={state.subjectLook}
           extraPresetIds={state.extraPresetIds}
           toggleExtraPreset={state.toggleExtraPreset}
           extraCustom={state.extraCustom}
           setExtraCustom={state.setExtraCustom}
-        />
-      )}
-
-      {flowStep === "paidSave" && (
-        <PostPaySaveStep
-          downloadOk={state.downloadOk}
-          error={state.error}
-          errorAt={state.errorAt}
-          saveReady={state.saveReady}
-          saveReadyFile={saveReadyFile}
-          setSavedOnce={state.setSavedOnce}
-          setDownloadOk={state.setDownloadOk}
-          download={download}
-          downloading={state.downloading}
-          deliverCleanByEmail={deliverCleanByEmail}
-        />
-      )}
-
-      {flowStep === "postSave" && (
-        <PostSaveLayoutStep
-          downloadOk={state.downloadOk}
-          error={state.error}
-          errorAt={state.errorAt}
-          download={download}
-          downloading={state.downloading}
-          extraBusyId={state.extraBusyId}
-          layoutBuying={state.layoutBuying}
-          saveReady={state.saveReady}
-          saveReadyFile={saveReadyFile}
-          primaryShotId={state.primaryShotId}
-          packId={state.packId}
-          layoutSaveReady={state.layoutSaveReady}
-          saveLayoutReadyFile={saveLayoutReadyFile}
-          layoutPackPaid={state.layoutPackPaid}
-          layoutPaidSizeIds={state.layoutPaidSizeIds}
-          shots={state.shots}
-          redownloadOwnedLayout={redownloadOwnedLayout}
           layoutOffer={state.layoutOffer}
           layoutFreeUsed={state.layoutFreeUsed}
           layoutRemainingCount={state.layoutRemainingCount}
+          layoutPackPaid={state.layoutPackPaid}
+          layoutPaidSizeIds={state.layoutPaidSizeIds}
           downloadLayout={downloadLayout}
+          redownloadOwnedLayout={redownloadOwnedLayout}
           setLayoutSkippedIds={state.setLayoutSkippedIds}
           extraShots={state.extraShots}
           extraPaidIds={state.extraPaidIds}
           downloadExtra={downloadExtra}
-          deliverCleanByEmail={deliverCleanByEmail}
-          deliverLayoutByEmail={deliverLayoutByEmail}
         />
       )}
-
-      <section
-        id="kiosk-guide"
-        className="rounded-2xl border-2 border-ink-900 bg-ink-950 p-5 text-sm text-white"
-      >
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-studio-soft">
-          {PRINT_GUIDE.label}
-        </p>
-        <h2 className="mt-1 font-display text-lg font-semibold text-white">
-          {PRINTING_BOX.name}에서 4×6 인화
-        </h2>
-        <p className="mt-2 text-xs text-ink-300">
-          배송은 없어요. 레이아웃 PNG를 업로드한 뒤 인쇄코드로 근처 기기에서 뽑으세요.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <a
-            href={PRINTING_BOX.storeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex rounded-full bg-studio-soft px-4 py-2 text-xs font-semibold text-ink-950 hover:bg-white"
-          >
-            {PRINTING_BOX.name} 위치 찾기 →
-          </a>
-          <Link
-            href={PRINT_GUIDE.path}
-            className="inline-flex rounded-full border border-white/35 px-4 py-2 text-xs font-semibold text-white hover:border-white"
-          >
-            {PRINT_GUIDE.label} 자세히 →
-          </Link>
-        </div>
-      </section>
 
       <div id="shoot-tips-full">
         <ShootTips />

@@ -9,6 +9,10 @@ export type FetchCleanInput = {
   previewAssetId?: string | null;
   shotId: string;
   mode: DownloadMode;
+  easter?: boolean;
+  easterVariant?: "glyph" | "animal";
+  /** 워터마크 제거(클린) — 향후 업셀 */
+  easterStrip?: boolean;
 };
 
 export type FetchCleanResult =
@@ -42,6 +46,13 @@ export async function fetchCleanPng(input: FetchCleanInput): Promise<FetchCleanR
     shotId: input.shotId,
     mode: input.mode,
     format: "binary",
+    ...(input.easter
+      ? {
+          easter: true,
+          easterVariant: input.easterVariant || "glyph",
+          easterStrip: input.easterStrip === true,
+        }
+      : {}),
   };
 
   let res: Response;

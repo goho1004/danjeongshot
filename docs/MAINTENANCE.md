@@ -133,8 +133,8 @@ SMOKE_BASE=https://danjeongshot.vercel.app npm run maint:gate
 | 다운로드·Safari multipart | `src/lib/download/fetchClean.ts`, `src/app/api/download/route.ts` |
 | 파일 저장 (picker/share/anchor) | `src/lib/download/savePng.ts` |
 | 결제 후 흐름 단계 | `src/lib/flow/makeFlow.ts`, `src/components/make/steps/*` |
-| 받기/저장 UI | `PostPayFetchStep`, `PostPaySaveStep`, `hooks/make/useDownload.ts` |
-| 레이아웃 | `hooks/make/useLayoutDownload.ts`, `src/lib/photoSheet.ts`, `PostSaveLayoutStep` |
+| 받기/저장 UI | `PaidDonePanel`, `hooks/make/useDownload.ts` |
+| 레이아웃 | `hooks/make/useLayoutDownload.ts`, `src/lib/photoSheet.ts`, `PaidDonePanel` |
 | 워터마크 | `src/lib/watermark.ts`, `WatermarkFrame.tsx` |
 | 결제 | `hooks/make/useCheckout.ts`, `src/app/api/checkout*` |
 | 미리보기 생성 | `hooks/make/useGenerate.ts`, `src/app/api/generate` |

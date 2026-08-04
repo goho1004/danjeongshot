@@ -94,6 +94,14 @@ export async function POST(req: NextRequest) {
     purposeId: opened.purposeId,
   });
 
+  let outPng = opened.cleanPng;
+  if (body.easter === true && body.easterStrip !== true) {
+    const { burnEasterWatermark } = await import("@/lib/watermark");
+    const variant = body.easterVariant === "animal" ? "animal" : "glyph";
+    const burned = await burnEasterWatermark(opened.cleanPng, variant);
+    outPng = burned.markedPng;
+  }
+
   return NextResponse.json({
     ok: true,
     mode: "sandbox",
@@ -102,7 +110,7 @@ export async function POST(req: NextRequest) {
     unlockToken: updated.unlockToken,
     amountKrw,
     mimeType: "image/png",
-    cleanBase64: opened.cleanPng.toString("base64"),
+    cleanBase64: outPng.toString("base64"),
     previewVault: nextVault,
     notice:
       amountKrw > 0

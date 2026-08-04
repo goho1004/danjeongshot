@@ -29,6 +29,9 @@ type Body = {
   /** layout 일 때 — 클라이언트가 만든 타일 PNG */
   pngBase64?: string;
   filename?: string;
+  easter?: boolean;
+  easterVariant?: "glyph" | "animal";
+  easterStrip?: boolean;
 };
 
 function siteUrl(req: NextRequest): string {
@@ -145,6 +148,12 @@ export async function POST(req: NextRequest) {
         },
         { status: 410 }
       );
+    }
+    if (body.easter === true && body.easterStrip !== true) {
+      const { burnEasterWatermark } = await import("@/lib/watermark");
+      const variant = body.easterVariant === "animal" ? "animal" : "glyph";
+      const burned = await burnEasterWatermark(png, variant);
+      png = burned.markedPng;
     }
     filename = filename || `danjeongshot-${order.purposeId}.png`;
   }

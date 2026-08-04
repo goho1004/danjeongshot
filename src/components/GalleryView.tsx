@@ -2,38 +2,21 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 import { GALLERY_ITEMS, GALLERY_TABS, type GalleryItem } from "@/lib/gallery";
 import type { PurposeId } from "@/lib/purposes";
 
 function PairCard({ item }: { item: GalleryItem }) {
   return (
-    <article className="group">
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        <figure className="overflow-hidden rounded-sm bg-ink-50 shadow-soft ring-1 ring-ink-100/80">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={item.beforeSrc}
-            alt={`${item.title} · 전`}
-            className="aspect-[3/4] w-full object-cover transition duration-500 group-hover:scale-[1.02]"
-            loading="lazy"
-          />
-          <figcaption className="border-t border-ink-100 bg-white px-2 py-1.5 text-[10px] font-semibold tracking-wide text-ink-400">
-            전 · 셀카
-          </figcaption>
-        </figure>
-        <figure className="overflow-hidden rounded-sm bg-ink-50 shadow-soft ring-1 ring-ink-100/80">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={item.afterSrc}
-            alt={`${item.title} · 후`}
-            className="aspect-[3/4] w-full object-cover transition duration-500 group-hover:scale-[1.02]"
-            loading="lazy"
-          />
-          <figcaption className="border-t border-ink-100 bg-white px-2 py-1.5 text-[10px] font-semibold tracking-wide text-studio">
-            후 · 단정
-          </figcaption>
-        </figure>
-      </div>
+    <article>
+      <BeforeAfterSlider
+        beforeSrc={item.beforeSrc}
+        afterSrc={item.afterSrc}
+        beforeAlt={`${item.title} · 전`}
+        afterAlt={`${item.title} · 후`}
+        aspectClass="aspect-[3/4]"
+        className="[&>p]:mt-1.5"
+      />
       <h3 className="mt-3 text-sm font-semibold text-ink-900">{item.title}</h3>
       <p className="mt-0.5 text-xs text-ink-400">{item.note}</p>
     </article>

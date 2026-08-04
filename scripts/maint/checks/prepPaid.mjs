@@ -8,26 +8,9 @@ function maintHeaders() {
 
 export { maintHeaders };
 
-/** Gate·smoke 공용: generate → checkout → complete 1회 */
+/** Gate·smoke 공용: checkout → complete → generate (pay-first) */
 export async function createPaidSession(base) {
   const imageBase64 = await uniqueSmokePngDataUrl();
-  const gen = await fetch(`${base}/api/generate`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-djs-device": uniqueDeviceId("maint_prep"),
-      ...maintHeaders(),
-    },
-    body: JSON.stringify({
-      stage: "preview",
-      imageBase64,
-      purposeId: "resume",
-      subjectLook: "as_photo",
-      subjectSeason: "as_photo",
-    }),
-  });
-  const g = await gen.json();
-  if (!gen.ok) throw new Error(g.error || `generate ${gen.status}`);
 
   const co = await fetch(`${base}/api/checkout`, {
     method: "POST",
@@ -35,8 +18,6 @@ export async function createPaidSession(base) {
     body: JSON.stringify({
       purposeId: "resume",
       packId: "basic",
-      previewAssetId: g.previewAssetId,
-      previewVault: g.previewVault,
     }),
   });
   const c = await co.json();
@@ -50,9 +31,30 @@ export async function createPaidSession(base) {
   const p = await pay.json();
   if (!pay.ok) throw new Error(p.error || `complete ${pay.status}`);
 
+  const unlockToken = p.unlockToken || c.orderTicket;
+  const gen = await fetch(`${base}/api/generate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-djs-device": uniqueDeviceId("maint_prep"),
+      ...maintHeaders(),
+    },
+    body: JSON.stringify({
+      stage: "preview",
+      imageBase64,
+      purposeId: "resume",
+      subjectLook: "as_photo",
+      subjectSeason: "as_photo",
+      orderId: c.orderId,
+      unlockToken,
+    }),
+  });
+  const g = await gen.json();
+  if (!gen.ok) throw new Error(g.error || `generate ${gen.status}`);
+
   return {
     orderId: c.orderId,
-    unlockToken: p.unlockToken,
+    unlockToken: g.unlockToken || unlockToken,
     orderTicket: c.orderTicket,
     previewAssetId: g.previewAssetId,
     previewVault: g.previewVault,

@@ -104,6 +104,14 @@ export function getPurpose(id: string): Purpose | undefined {
 export const IDENTITY_SUFFIX =
   " Critical: same person as the photo — same gender presentation, same age band, same face. Do not beautify, idealize, or gender-swap. Never dress a woman (including elderly women) in men's formalwear, necktie, or masculine suit.";
 
+/** 전 용도·리젠 공통 — 고급·실키 톤 (현장 검증 문구) */
+const TONE_GUIDANCE =
+  " Tone: 고급스러운톤+전체적으로 실키한톤+밝고 화사한톤 (luxurious tone + overall silky tone + bright, fresh/radiant tone).";
+
+/** 전 용도·리젠 공통 — 얼굴 그림자 제거 + 부드러운 조명 */
+const LIGHTING_GUIDANCE =
+  " Lighting: 얼굴그림자 없게, 부드러운 조명 (no face shadows, soft lighting).";
+
 /** 결제 후 추가 컷용 — 같은 lite, 각도·조명만 미세 변형 (프로 모델 아님) */
 export const STUDIO_VARIANT_HINTS = [
   " Slightly different soft key light from camera-left. Keep framing head-and-shoulders. Same identity, gender, age, and clothing gender rules.",
@@ -258,7 +266,12 @@ export function buildPrompt(
   const look = subject?.look ?? "as_photo";
   const season = subject?.season ?? "as_photo";
   let base =
-    p.prompt + IDENTITY_SUFFIX + LOOK_PROMPT[look] + SEASON_PROMPT[season];
+    p.prompt +
+    IDENTITY_SUFFIX +
+    TONE_GUIDANCE +
+    LIGHTING_GUIDANCE +
+    LOOK_PROMPT[look] +
+    SEASON_PROMPT[season];
   if (look === "woman" && season === "elder") {
     base += WOMAN_ELDER_LOCK;
   }

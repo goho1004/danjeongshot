@@ -5,9 +5,10 @@ human_title: 단정샷 유지보수·모듈분리 (2026-07-24)
 > 사이트: https://danjeongshot.vercel.app  
 > 코드: `D:\Memento\projects\danjeongshot`  
 > 정본 문서: `docs/MAINTENANCE.md`  
-> 상태: **BETA OPEN** (사업자 전) · 결제=sandbox 시뮬레이션 · 실생성 `MOCK_GENERATE=0`
+> 상태: **BETA OPEN** (사업자 전) · 결제=sandbox · 실생성 `MOCK_GENERATE=0` · **maint:gate GREEN** (2026-08-04)
 
-**BETA Done:** 베타 뱃지·푸터 고지·체크아웃 시뮬레이션 문구 · 링크 공유 가능.  
+**BETA Done:** 베타 뱃지·푸터 고지·체크아웃 시뮬레이션 · pay-first 실생성·PNG 다운로드 · 링크 공유 가능.  
+**초대 문장:** `docs/BETA_INVITE.md`  
 **다음(베타 후):** 사업자·통신판매 기재 · 토스 라이브 · 커스텀 도메인.  
 **동결:** `docs/BETA_FREEZE.md` (라대리·전자책·하네스 확장 ✗)
 
@@ -15,7 +16,7 @@ human_title: 단정샷 유지보수·모듈분리 (2026-07-24)
 
 ## 0. 한 줄로
 
-미리보기(워터마크) → 결제 → 「이 컷 받기」→ 「파일로 저장」→ 「레이아웃 저장」.
+셀카 → 결제 → 첫 컷 → **받기 한 패널**(`PaidDonePanel`: 사진에 저장 → 플러스면 인화용).
 고칠 때 어디 파일을 열면 되는지, 아래 §3 표만 보면 됩니다.
 
 ---
@@ -45,9 +46,9 @@ human_title: 단정샷 유지보수·모듈분리 (2026-07-24)
 1. 용도·업로드 (`PurposeUploadStep`)
 2. 미리보기 + 워터마크 (`PreviewStep`)
 3. 결제 (`CheckoutStep`)
-4. 7. 받기 (`PostPayFetchStep`)
-5. 7. 저장 (`PostPaySaveStep`) — 여기서 저장해야 다음으로
-6. 8. 레이아웃 (`PostSaveLayoutStep`)
+4. 받기 한 패널 (`PaidDonePanel`) — 사진에 저장 → (플러스) 인화용 사진에 저장
+5. 「다른 방법」접기: 이메일·다시만들기·규격·추가컷
+
 
 ### 폴더 지도
 
@@ -79,8 +80,8 @@ human_title: 단정샷 유지보수·모듈분리 (2026-07-24)
 | Safari 잠금·받기 실패 | `src/lib/download/fetchClean.ts` · `src/app/api/download/route.ts` |
 | 파일로 저장이 안 됨 | `src/lib/download/savePng.ts` |
 | 단계가 꼬임 | `src/lib/flow/makeFlow.ts` · `src/components/make/steps/*` |
-| 받기/저장 버튼 | `useDownload.ts` · `PostPayFetchStep` · `PostPaySaveStep` |
-| 레이아웃 오류 | `useLayoutDownload.ts` · `photoSheet.ts` |
+| 받기/저장 버튼 | `useDownload.ts` · `PaidDonePanel` |
+| 레이아웃 오류 | `useLayoutDownload.ts` · `PaidDonePanel` · `photoSheet.ts` |
 | 워터마크 | `src/lib/watermark.ts` · `WatermarkFrame.tsx` |
 | 결제 | `useCheckout.ts` · `src/app/api/checkout*` |
 | 미리보기 생성 | `useGenerate.ts` · `src/app/api/generate` |
@@ -168,7 +169,7 @@ npm run maint:gate -- --base https://danjeongshot.vercel.app
 
 자동 게이트는 GREEN입니다. 아래는 회장님 눈으로 한 번씩만 보면 됩니다.
 
-1. 크롬: 업로드 → 결제 → 받기 → 저장 → 레이아웃
+1. 크롬: 업로드 → 결제 → 첫 컷 → 사진에 저장 → (플러스) 인화용
 2. Safari(아이폰): 같은 경로, 「다운로드 잠금」 없는지
 3. 결제 전 미리보기에서 워터마크(단정)가 보이는지
 4. 푸터 사업자·부가세 문구 확인

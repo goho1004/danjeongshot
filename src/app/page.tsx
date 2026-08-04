@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
-import { PACKS, POSITIONING, PRICE, PURPOSES, TRUST_CHIPS } from "@/lib/purposes";
+import { PACKS, POSITIONING, PRICE, PURPOSES } from "@/lib/purposes";
 import GalleryView from "@/components/GalleryView";
+import HeroWithSlider from "@/components/HeroWithSlider";
 import SiteFooter from "@/components/SiteFooter";
 
 export default function HomePage() {
@@ -45,57 +46,14 @@ export default function HomePage() {
       </header>
 
       <main>
-        <section className="hero-wash relative min-h-[100svh] pt-16">
-          <div className="grain" aria-hidden />
-          <div className="relative mx-auto flex min-h-[calc(100svh-4rem)] max-w-6xl flex-col justify-center px-5 pb-20 pt-12 md:px-8 md:pb-28 md:pt-16">
-            <p className="animate-rise text-sm font-medium tracking-wide text-studio-deep">
-              {BRAND.beta} · {BRAND.speed} · 마감 전에 쓰는 단정 증명사진
-            </p>
-            <h1 className="animate-rise-2 mt-5 max-w-3xl font-display text-[2.35rem] leading-[1.08] tracking-tight text-ink-950 sm:text-[2.75rem] md:text-6xl md:leading-[1.05] lg:text-7xl">
-              <span className="block text-studio">{BRAND.sign}</span>
-              <span className="mt-2 block font-normal italic text-ink-700 md:mt-3">
-                급할 때, 나처럼 보이는
-                <br className="hidden sm:block" /> 단정 증명사진.
-              </span>
-            </h1>
-            <p className="animate-rise-3 mt-8 max-w-lg text-base leading-relaxed text-ink-500 md:text-lg">
-              {POSITIONING.oneLiner} {POSITIONING.vsStudio}
-            </p>
-            <div className="animate-rise-3 mt-10 flex flex-wrap items-center gap-4">
-              <Link
-                href="/make"
-                className="focus-ring inline-flex items-center gap-2 rounded-full bg-studio px-7 py-3.5 text-base font-semibold text-white shadow-lift transition hover:bg-studio-deep"
-              >
-                용도 고르고 만들기
-                <span aria-hidden className="text-studio-soft">
-                  →
-                </span>
-              </Link>
-              <a
-                href="#gallery"
-                className="focus-ring text-sm font-semibold text-ink-700 underline-offset-4 hover:text-studio hover:underline"
-              >
-                전후 갤러리 보기
-              </a>
-            </div>
-            <ul className="animate-fade mt-12 flex flex-wrap gap-x-5 gap-y-2 border-t border-ink-100/80 pt-6 text-xs font-medium text-ink-500">
-              {TRUST_CHIPS.map((c) => (
-                <li key={c} className="flex items-center gap-2">
-                  <span className="h-1 w-1 rounded-full bg-studio" aria-hidden />
-                  {c}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+        <HeroWithSlider />
 
         <section id="gallery" className="border-t border-ink-100 bg-paper">
           <div className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-24">
             <p className="text-xs font-semibold tracking-wide text-studio">전 · 후</p>
             <h2 className="mt-3 font-display text-3xl text-ink-950 md:text-5xl">갤러리</h2>
             <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-500">
-              셀카에서 단정 프사로. 용도별로 보면, 결제 후 받는 결이 어떤지 감이 옵니다. 과한 미모
-              보정이나 네컷 감성은 아니에요.
+              슬라이더를 밀어 셀카와 단정 프사를 비교하세요. 과한 미모 보정·네컷 감성은 아닙니다.
             </p>
             <p className="mt-3 max-w-xl text-xs leading-relaxed text-ink-400">
               아래는 구성·톤 예시입니다. 실제 결과물은 업로드한 셀카와 선택한 용도에 따라 달라집니다.
@@ -206,31 +164,51 @@ export default function HomePage() {
 
         <section id="how" className="bg-paper">
           <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
-            <h2 className="font-display text-3xl text-ink-950 md:text-4xl">이렇게 끝나요</h2>
-            <ol className="mt-12 grid gap-8 md:grid-cols-3 md:gap-6">
+            <p className="text-xs font-semibold tracking-wide text-studio">변환</p>
+            <h2 className="mt-2 font-display text-3xl text-ink-950 md:text-4xl">
+              예뻐지는 게 아니라 단정해집니다
+            </h2>
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-500">
+              얼굴은 그대로. 배경·조명·구도만 정돈합니다. 뷰티 필터는 기본 OFF.
+            </p>
+            <ol className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 {
-                  t: "용도·셀카",
-                  d: "이력서, 링크드인, 인화용 중 고르고 정면·밝은 셀카를 올려 주세요.",
+                  n: "01",
+                  t: "업로드",
+                  d: "정면·밝은 셀카. O/X 가이드로 입력 품질을 먼저 고정합니다.",
                 },
                 {
-                  t: "팩 결제",
-                  d: "기본·플러스 중 고르고 결제합니다. 무료 미리보기는 없고, 결제 후 첫 컷이 열려요.",
+                  n: "02",
+                  t: "배경",
+                  d: "흰/연회색으로 단정하게. 잡배경을 정리합니다.",
                 },
                 {
-                  t: "첫 컷 · 다운로드",
-                  d: "첫 컷을 보고 PNG를 받습니다. 아쉬우면 다시 만들기·A/S가 있어요. 받은 뒤에는 환불이 어려워요.",
+                  n: "03",
+                  t: "조명·구도",
+                  d: "그림자를 고르게, 상반신 증명 구도로 맞춥니다.",
                 },
-              ].map((step, i) => (
-                <li key={step.t} className="relative border-t border-ink-200 pt-6">
-                  <span className="font-display text-4xl text-studio/30">
-                    {String(i + 1).padStart(2, "0")}
+                {
+                  n: "04",
+                  t: "얼굴 보존",
+                  d: "과보정 OFF. 나처럼 보이게 유지한 뒤 PNG로 받습니다.",
+                },
+              ].map((step) => (
+                <li
+                  key={step.n}
+                  className="rounded-2xl border border-ink-100 bg-white p-5 shadow-soft"
+                >
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-ink-950 text-sm font-semibold text-white">
+                    {step.n}
                   </span>
-                  <h3 className="mt-2 text-lg font-semibold text-ink-950">{step.t}</h3>
-                  <p className="mt-2 text-sm text-ink-500 leading-relaxed">{step.d}</p>
+                  <h3 className="mt-4 text-lg font-semibold text-ink-950">{step.t}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-ink-500">{step.d}</p>
                 </li>
               ))}
             </ol>
+            <p className="mt-8 text-xs text-ink-400">
+              이용 흐름: 용도 선택 → 셀카 → 팩 결제 → 첫 컷·다운로드. 받은 뒤 환불은 어렵습니다.
+            </p>
           </div>
         </section>
 

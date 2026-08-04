@@ -103,6 +103,72 @@ export function useGenerate(
         );
         return;
       }
+      setMock(Boolean(data.mock));
+      if (typeof data.previewLeft === "number") setPreviewLeft(data.previewLeft);
+      if (typeof data.previewAssetId === "string") setPreviewAssetId(data.previewAssetId);
+      if (typeof data.unlockToken === "string") setUnlockToken(data.unlockToken);
+
+      type ApiShot = {
+        imageUrl?: string;
+        imageUrlClean?: string;
+        timeSec?: string;
+        label?: string;
+        easter?: boolean;
+        easterVariant?: "glyph" | "animal";
+        previewVault?: string;
+      };
+
+      const apiShots: ApiShot[] = Array.isArray(data.shots) ? data.shots : [];
+      if (apiShots.length > 0) {
+        const built: Shot[] = apiShots
+          .filter((s) => !!s.imageUrl)
+          .map((s, i) => {
+            const vault =
+              typeof s.previewVault === "string"
+                ? s.previewVault
+                : i ===
+                      (typeof data.selectedIndex === "number"
+                        ? data.selectedIndex
+                        : 0) && typeof data.previewVault === "string"
+                  ? (data.previewVault as string)
+                  : null;
+            return {
+              id: newShotId(),
+              imageUrl: s.imageUrl as string,
+              imageUrlClean:
+                typeof s.imageUrlClean === "string" ? s.imageUrlClean : undefined,
+              label: s.label || (s.easter ? "보너스 · 희소" : `컷 ${i + 1}`),
+              timeSec: s.timeSec,
+              vault,
+              unlocked: true,
+              easter: !!s.easter,
+              easterVariant: s.easterVariant,
+            };
+          });
+        if (!built.length) {
+          fail("generate", STUDIO_RETRY);
+          return;
+        }
+        const preferIdx =
+          typeof data.selectedIndex === "number" &&
+          data.selectedIndex >= 0 &&
+          data.selectedIndex < built.length
+            ? data.selectedIndex
+            : built.findIndex((s) => !s.easter);
+        const sel = preferIdx >= 0 ? preferIdx : 0;
+        const vault = built[sel]?.vault;
+        if (vault) setPreviewVault(vault);
+        else if (typeof data.previewVault === "string") {
+          setPreviewVault(data.previewVault as string);
+        }
+        setShots(built);
+        setSelectedShotId(built[sel]?.id ?? null);
+        return;
+      }
+
+      const vault =
+        typeof data.previewVault === "string" ? (data.previewVault as string) : null;
+      if (vault) setPreviewVault(vault);
       const url =
         (data.preview?.imageUrl as string | undefined) ||
         (data.shot?.imageUrl as string | undefined);
@@ -110,13 +176,6 @@ export function useGenerate(
         fail("generate", STUDIO_RETRY);
         return;
       }
-      setMock(Boolean(data.mock));
-      if (typeof data.previewLeft === "number") setPreviewLeft(data.previewLeft);
-      if (typeof data.previewAssetId === "string") setPreviewAssetId(data.previewAssetId);
-      if (typeof data.unlockToken === "string") setUnlockToken(data.unlockToken);
-      const vault =
-        typeof data.previewVault === "string" ? (data.previewVault as string) : null;
-      if (vault) setPreviewVault(vault);
       const id = newShotId();
       const shot: Shot = {
         id,
@@ -125,6 +184,7 @@ export function useGenerate(
         timeSec: data.preview?.timeSec || data.shot?.timeSec,
         vault,
         unlocked: true,
+        easter: !!(data.shot?.easter || data.preview?.easter),
       };
       setShots([shot]);
       setSelectedShotId(id);

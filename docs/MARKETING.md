@@ -2,15 +2,18 @@
 
 > **갱신:** 2026-08-02 · 회장님 논의 잠금  
 > **상태:** 베타 · 샌드박스 · 사업자 전 → **소수 검증 우선**  
-> **운영:** 지금은 **메모·연구용만**. 캠페인 구현·살포 집행 ✗ — 마케팅 연구 더 한 뒤 결정.
+> **운영:** 지금은 **메모·연구용만**. 캠페인 구현·살포 집행 ✗ — 마케팅 연구 더 한 뒤 결정.  
+> **지금 1순위:** **당근 랜딩** — 전략 잠금 [`GO_TO_MARKET.md`](GO_TO_MARKET.md)
 
 ### 채널 기획 정본 (이 창 정리)
 
 | 문서 | 내용 |
 |------|------|
+| **[GO_TO_MARKET.md](GO_TO_MARKET.md)** | **GTM 잠금** — 당근 랜딩 1순위 · 글로벌(영미·JP 우회) 병행 |
 | **[MARKETPLACE.md](MARKETPLACE.md)** | **마켓플레이스 한 장** (대리점·당근·유보·정산) |
 | **[MARKETING_CHANNEL.md](MARKETING_CHANNEL.md)** | **대리점 단일 모델·주기·원가·정산 정본** |
 | [AGENT_PARTNER_PLAN.md](AGENT_PARTNER_PLAN.md) | 모바일 대리 전문 (스크립트§15 · 정산§16) |
+| [PARTNER_PRINTINGBOX.md](PARTNER_PRINTINGBOX.md) | 단정×프박 4×6 상호50% · 인화 CTA·보관·계정 잠금 |
 | [`brochure/`](brochure/) | 임원 미팅 브로슈어 · 파트너 시트 |
 
 ---

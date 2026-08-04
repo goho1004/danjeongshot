@@ -52,7 +52,7 @@ export default function PostPayFetchStep({
   return (
     <div className="rounded-2xl border border-accent/30 bg-accent-soft/40 p-5 space-y-4">
       <div>
-        <p className="text-sm font-semibold text-accent-deep">6. 사진 받기</p>
+        <p className="text-sm font-semibold text-accent-deep">사진 받기</p>
         <p className="mt-1 text-xs text-ink-500">
           「이 컷 받기」를 누르면 클린 PNG를 준비하고 「사진에 저장」으로 이어가요. 공유 창에서
           「이미지 저장」만 누르세요. 막히면 이메일로 받으세요.

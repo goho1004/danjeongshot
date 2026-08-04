@@ -20,6 +20,7 @@ export function useLayoutDownload(state: MakeStudioState) {
     printSizeId,
     primaryShotId,
     extraPaidIds,
+    layoutFreeUsed,
     layoutPackPaid,
     layoutPaidSizeIds,
     layoutSaveReady,
@@ -40,16 +41,16 @@ export function useLayoutDownload(state: MakeStudioState) {
     shot: Shot,
     mode: "free" | "single" | "pack",
     sizeId?: string
-  ) => {
+  ): Promise<boolean> => {
     const slot = "layout";
-    if (!paid || !orderId || !unlockToken || !downloaded || layoutBuying) return;
+    if (!paid || !orderId || !unlockToken || !downloaded || layoutBuying) return false;
     if (!savedOnce) {
       fail(slot, "먼저 위 「사진에 저장」또는 이메일로 PNG를 받아 주세요.");
-      return;
+      return false;
     }
     if (!shot.unlocked && shot.id !== primaryShotId && !extraPaidIds.includes(shot.id)) {
       fail(slot, "먼저 이 컷 PNG를 받아 주세요.");
-      return;
+      return false;
     }
     const targetId = sizeId || printSizeId;
     const size = getPrintSize(targetId);
@@ -70,7 +71,7 @@ export function useLayoutDownload(state: MakeStudioState) {
       const payData = await payRes.json();
       if (!payRes.ok) {
         fail(slot, payData.error || "레이아웃 처리에 실패했습니다.");
-        return;
+        return false;
       }
       if (typeof payData.unlockToken === "string") setUnlockToken(payData.unlockToken);
       if (typeof payData.layoutFreeUsed === "boolean") setLayoutFreeUsed(payData.layoutFreeUsed);
@@ -99,9 +100,18 @@ export function useLayoutDownload(state: MakeStudioState) {
         url,
         label: downloadSize.label,
       });
-      setDownloadOk(
-        `${downloadSize.label} 레이아웃 준비됨 · 「사진에 저장」을 누르고 「이미지 저장」만 선택하세요.`
-      );
+      try {
+        const how = await savePngBlob(blob, filename);
+        setDownloadOk(saveHowMessage(how, "layout"));
+        return true;
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") {
+          setDownloadOk("저장을 취소했어요. 「저장」을 다시 눌러 주세요.");
+          return false;
+        }
+        setDownloadOk("레이아웃이 준비됐어요. 「저장」또는 이메일을 이용해 주세요.");
+        return false;
+      }
     } catch (e) {
       const msg =
         e instanceof Error && e.message.includes("이미지 로드")
@@ -110,17 +120,18 @@ export function useLayoutDownload(state: MakeStudioState) {
             ? `레이아웃 준비 실패: ${e.message.slice(0, 80)}`
             : "레이아웃 준비 중 오류가 발생했습니다.";
       fail(slot, msg);
+      return false;
     } finally {
       setLayoutBuying(false);
     }
   };
 
-  const redownloadOwnedLayout = async (shot: Shot, sizeId: string) => {
+  const redownloadOwnedLayout = async (shot: Shot, sizeId: string): Promise<boolean> => {
     const slot = "layout";
-    if (layoutBuying) return;
+    if (layoutBuying) return false;
     if (!layoutPackPaid && !layoutPaidSizeIds.includes(sizeId)) {
       fail(slot, "아직 열리지 않은 레이아웃이에요.");
-      return;
+      return false;
     }
     setLayoutBuying(true);
     clearFail();
@@ -135,9 +146,18 @@ export function useLayoutDownload(state: MakeStudioState) {
       const filename = `danjeongshot-layout-${size.id}.png`;
       const url = URL.createObjectURL(blob);
       setLayoutSaveReady({ blob, filename, url, label: size.label });
-      setDownloadOk(
-        `${size.label} 레이아웃 준비됨 · 「사진에 저장」→ 「이미지 저장」`
-      );
+      try {
+        const how = await savePngBlob(blob, filename);
+        setDownloadOk(saveHowMessage(how, "layout"));
+        return true;
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") {
+          setDownloadOk("저장을 취소했어요. 「저장」을 다시 눌러 주세요.");
+          return false;
+        }
+        setDownloadOk("레이아웃이 준비됐어요. 「저장」또는 이메일을 이용해 주세요.");
+        return false;
+      }
     } catch (e) {
       fail(
         slot,
@@ -145,23 +165,26 @@ export function useLayoutDownload(state: MakeStudioState) {
           ? `레이아웃 준비 실패: ${e.message.slice(0, 80)}`
           : "레이아웃 준비 중 오류가 발생했습니다."
       );
+      return false;
     } finally {
       setLayoutBuying(false);
     }
   };
 
-  const saveLayoutReadyFile = async () => {
-    if (!layoutSaveReady) return;
+  const saveLayoutReadyFile = async (): Promise<boolean> => {
+    if (!layoutSaveReady) return false;
     clearFail();
     try {
       const how = await savePngBlob(layoutSaveReady.blob, layoutSaveReady.filename);
       setDownloadOk(saveHowMessage(how, "layout"));
+      return true;
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") {
         setDownloadOk("저장을 취소했어요. 「사진에 저장」또는 이메일을 다시 눌러 주세요.");
-        return;
+        return false;
       }
       setDownloadOk("레이아웃 저장이 막혔어요. 「사진에 저장」또는 이메일을 이용해 주세요.");
+      return false;
     }
   };
 
@@ -205,5 +228,92 @@ export function useLayoutDownload(state: MakeStudioState) {
     return { ok: true, message: data.notice || "레이아웃을 이메일로 보냈어요." };
   };
 
-  return { downloadLayout, redownloadOwnedLayout, saveLayoutReadyFile, deliverLayoutByEmail };
+  const prepareAndSaveDefaultLayout = async (shot: Shot): Promise<boolean> => {
+    const slot = "layout";
+    if (!paid || !orderId || !unlockToken || !downloaded || layoutBuying) return false;
+    if (!savedOnce) {
+      fail(slot, "먼저 「사진에 저장」을 해 주세요.");
+      return false;
+    }
+    const sizeId =
+      layoutPaidSizeIds[0] ||
+      (layoutFreeUsed ? printSizeId : DEFAULT_PRINT_SIZE_ID);
+
+    setLayoutBuying(true);
+    clearFail();
+    try {
+      let blob: Blob;
+      let filename: string;
+      let label: string;
+
+      if (layoutPackPaid || layoutPaidSizeIds.includes(sizeId)) {
+        const size = getPrintSize(sizeId);
+        setPrintSizeId(size.id);
+        const sheet = await generatePhotoSheet(shot.imageUrl, size);
+        setLayoutUrl(sheet.dataUrl);
+        const res = await fetch(sheet.dataUrl);
+        blob = await res.blob();
+        filename = `danjeongshot-layout-${size.id}.png`;
+        label = size.label;
+      } else {
+        const size = getPrintSize(sizeId || DEFAULT_PRINT_SIZE_ID);
+        const payRes = await fetch("/api/checkout/layout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId,
+            unlockToken,
+            printSizeId: size.id,
+            mode: layoutFreeUsed ? "single" : "free",
+          }),
+        });
+        const payData = await payRes.json();
+        if (!payRes.ok) {
+          fail(slot, payData.error || "레이아웃 처리에 실패했습니다.");
+          return false;
+        }
+        if (typeof payData.unlockToken === "string") setUnlockToken(payData.unlockToken);
+        if (typeof payData.layoutFreeUsed === "boolean") setLayoutFreeUsed(payData.layoutFreeUsed);
+        if (typeof payData.layoutPackPaid === "boolean") setLayoutPackPaid(payData.layoutPackPaid);
+        if (Array.isArray(payData.layoutPaidSizeIds)) {
+          setLayoutPaidSizeIds(payData.layoutPaidSizeIds.map(String));
+        }
+        setPrintSizeId(size.id);
+        const sheet = await generatePhotoSheet(shot.imageUrl, size);
+        setLayoutUrl(sheet.dataUrl);
+        const res = await fetch(sheet.dataUrl);
+        blob = await res.blob();
+        filename = `danjeongshot-layout-${size.id}.png`;
+        label = size.label;
+      }
+
+      const url = URL.createObjectURL(blob);
+      setLayoutSaveReady({ blob, filename, url, label });
+      const how = await savePngBlob(blob, filename);
+      setDownloadOk(saveHowMessage(how, "layout"));
+      return true;
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") {
+        setDownloadOk("저장을 취소했어요. 「인화용 사진에 저장」을 다시 눌러 주세요.");
+        return false;
+      }
+      fail(
+        slot,
+        e instanceof Error && e.message
+          ? `인화용 준비 실패: ${e.message.slice(0, 80)}`
+          : "인화용 준비 중 오류가 발생했습니다."
+      );
+      return false;
+    } finally {
+      setLayoutBuying(false);
+    }
+  };
+
+  return {
+    downloadLayout,
+    redownloadOwnedLayout,
+    saveLayoutReadyFile,
+    deliverLayoutByEmail,
+    prepareAndSaveDefaultLayout,
+  };
 }

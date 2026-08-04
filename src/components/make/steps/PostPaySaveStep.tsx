@@ -31,7 +31,7 @@ export default function PostPaySaveStep({
     <div className="rounded-2xl border border-accent/30 bg-accent-soft/40 p-5 space-y-4">
       <div className="space-y-3">
         <div>
-          <p className="text-sm font-semibold text-accent-deep">7. 사진에 저장</p>
+          <p className="text-sm font-semibold text-accent-deep">사진에 저장</p>
           <p className="mt-1 text-xs text-ink-500">
             <strong className="font-semibold text-ink-700">사진에 저장</strong>을 누른 뒤, 공유
             창에서 <strong className="font-semibold text-ink-700">「이미지 저장」만</strong>{" "}

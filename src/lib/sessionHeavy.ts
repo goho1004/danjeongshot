@@ -200,10 +200,45 @@ export async function loadCheckoutSession(sessionKey: string): Promise<{
 type RestoreShotIn = {
   id: string;
   imageUrl: string;
+  imageUrlClean?: string;
   label?: string;
   unlocked?: boolean;
   vault?: string | null;
+  easter?: boolean;
+  easterVariant?: "glyph" | "animal";
 };
+
+const PLACEHOLDER_SVG =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect fill="#eee" width="100%" height="100%"/><text x="50%" y="50%" text-anchor="middle" fill="#666" font-size="14">미리보기</text></svg>`
+  );
+
+/** blob: 는 탭/리로드 후 무효 — data URL 로 굳혀 IDB 에 넣음 */
+async function toDurableDataUrl(url: string): Promise<string | null> {
+  if (!url) return null;
+  if (url.startsWith("data:")) return url;
+  if (!url.startsWith("blob:")) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise<string | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () =>
+        resolve(typeof reader.result === "string" ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+function isEphemeralUrl(url: string | undefined | null): boolean {
+  if (!url) return true;
+  return url.startsWith("blob:") || url.startsWith("data:");
+}
 
 export async function persistRestorePaid(
   restoreKey: string,
@@ -215,36 +250,68 @@ export async function persistRestorePaid(
   }
 ): Promise<void> {
   const heavyKey = `restore_${data.orderId}`;
-  const shotVaults: Record<string, string> = {};
-  const shotImages: Record<string, string> = {};
-  for (const s of data.shots || []) {
-    if (s.vault) shotVaults[s.id] = s.vault;
-    if (s.imageUrl?.startsWith("data:")) shotImages[s.id] = s.imageUrl;
-  }
-  await idbSet(
-    heavyKey,
-    JSON.stringify({
-      previewVault: data.previewVault || null,
-      selfie: data.selfie || null,
-      shotVaults,
-      shotImages,
-    })
-  );
   const slim = {
     ...data,
-    v: 3,
+    v: 4,
     heavyKey,
     previewVault: undefined,
     selfie: undefined,
     shots: (data.shots || []).map((s) => ({
       id: s.id,
       label: s.label || "",
-      // data URL 은 IDB shotImages — sessionStorage 에는 넣지 않음
-      imageUrl: s.imageUrl?.startsWith("data:") ? "" : s.imageUrl || "",
+      // data/blob 은 IDB — sessionStorage 에는 http(s) 만 (또는 빈 문자열)
+      imageUrl: isEphemeralUrl(s.imageUrl) ? "" : s.imageUrl || "",
       unlocked: !!s.unlocked,
+      easter: !!s.easter || undefined,
+      easterVariant: s.easterVariant,
     })),
   };
+  // 메타는 동기 기록 먼저 — SPA 이탈·pagehide 에서 IDB await 전에 죽어도 주문·결제 복원 가능
   sessionStorage.setItem(restoreKey, JSON.stringify(slim));
+
+  let prevShotImages: Record<string, string> = {};
+  let prevShotVaults: Record<string, string> = {};
+  let prevPreviewVault: string | null = null;
+  let prevSelfie: string | null = null;
+  try {
+    const prevRaw = await idbGet(heavyKey);
+    if (prevRaw) {
+      const prev = JSON.parse(prevRaw) as {
+        previewVault?: string | null;
+        selfie?: string | null;
+        shotVaults?: Record<string, string>;
+        shotImages?: Record<string, string>;
+      };
+      prevShotImages = prev.shotImages || {};
+      prevShotVaults = prev.shotVaults || {};
+      prevPreviewVault = prev.previewVault || null;
+      prevSelfie = prev.selfie || null;
+    }
+  } catch {
+    /* ignore */
+  }
+
+  const shotVaults: Record<string, string> = { ...prevShotVaults };
+  const shotImages: Record<string, string> = { ...prevShotImages };
+  for (const s of data.shots || []) {
+    if (s.vault) shotVaults[s.id] = s.vault;
+    if (s.imageUrl?.startsWith("data:")) {
+      shotImages[s.id] = s.imageUrl;
+    } else if (s.imageUrl?.startsWith("blob:")) {
+      const durable = await toDurableDataUrl(s.imageUrl);
+      if (durable) shotImages[s.id] = durable;
+      // 변환 실패 시 기존 IDB 이미지 유지 (덮어쓰지 않음)
+    }
+  }
+  await idbSet(
+    heavyKey,
+    JSON.stringify({
+      previewVault: data.previewVault || prevPreviewVault || null,
+      selfie: data.selfie || prevSelfie || null,
+      shotVaults,
+      shotImages,
+    })
+  );
 }
 
 export async function clearRestorePaid(restoreKey: string): Promise<void> {
@@ -299,18 +366,18 @@ export async function loadRestorePaid(restoreKey: string): Promise<Record<
     }
   }
 
-  const shots = (slim.shots || []).map((s) => ({
-    ...s,
-    label: s.label || "컷",
-    imageUrl:
-      shotImages[s.id] ||
-      s.imageUrl ||
-      "data:image/svg+xml," +
-        encodeURIComponent(
-          `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect fill="#eee" width="100%" height="100%"/><text x="50%" y="50%" text-anchor="middle" fill="#666" font-size="14">미리보기</text></svg>`
-        ),
-    vault: shotVaults[s.id] || previewVault || null,
-  }));
+  const shots = (slim.shots || []).map((s) => {
+    const raw = shotImages[s.id] || s.imageUrl || "";
+    // blob: 는 복원 후 항상 무효 — 버리기
+    const imageUrl =
+      raw && !raw.startsWith("blob:") ? raw : PLACEHOLDER_SVG;
+    return {
+      ...s,
+      label: s.label || "컷",
+      imageUrl,
+      vault: shotVaults[s.id] || previewVault || null,
+    };
+  });
 
   return {
     ...slim,

@@ -148,7 +148,7 @@ export default function RegenPanel({
         <p className="rounded-lg bg-white/80 px-3 py-2 text-xs leading-relaxed text-ink-600">
           다시 만들기와 추가 서비스를 모두 쓰셨어요. 남은 컷 중 가장 나은 장을 받아 가 주세요.
           다운로드한 뒤에는 환불이 어렵습니다.{" "}
-          <Link href="/help" className="underline">
+          <Link href="/help" className="underline" prefetch={false}>
             도움이 필요하면
           </Link>
         </p>

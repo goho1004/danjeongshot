@@ -132,7 +132,7 @@ export default function PostSaveLayoutStep({
 
       {primaryShotId && (
         <div className="rounded-xl border border-ink-100 bg-white/90 p-4 text-left space-y-3">
-          <p className="text-sm font-semibold text-ink-800">8. 인화용 레이아웃</p>
+          <p className="text-sm font-semibold text-ink-800">인화용 레이아웃</p>
           {packId === "plus" && (
             <p className="text-[11px] text-ink-500">
               플러스에 반명함·증명 포함 · 한 규격씩 받아 가세요
@@ -179,7 +179,7 @@ export default function PostSaveLayoutStep({
                   {PRINTING_BOX.name}
                 </a>
                 에 올리거나{" "}
-                <Link href={PRINT_GUIDE.path} className="underline">
+                <Link href={PRINT_GUIDE.path} className="underline" prefetch={false}>
                   {PRINT_GUIDE.label}
                 </Link>
                 를 보세요.

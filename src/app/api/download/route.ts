@@ -7,6 +7,9 @@ import {
 } from "@/lib/orders";
 import { getCleanForDownload, storePreviewAsset, bindPreviewToOrder } from "@/lib/previewAssets";
 import { sealPreviewVault, unsealPreviewVault } from "@/lib/previewVault";
+import { burnEasterWatermark } from "@/lib/watermark";
+import { ensurePngBuffer } from "@/lib/ensurePng";
+import type { EasterVariant } from "@/lib/easterEgg";
 
 type DlBody = {
   orderId?: string;
@@ -15,6 +18,11 @@ type DlBody = {
   shotId?: string;
   mode?: string;
   format?: string;
+  /** 이스터 슬롯 다운로드 시 워터마크 재합성 (vault는 클린 유지) */
+  easter?: boolean;
+  easterVariant?: "glyph" | "animal";
+  /** true면 워터마크 없이 클린 반환 (향후 업셀) */
+  easterStrip?: boolean;
 };
 
 /** Safari 등 대용량 JSON POST 한도 회피 — multipart vault 지원 */
@@ -137,6 +145,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // 이스터 슬롯: vault 클린에 워터마크 재합성. easterStrip=true → 클린 그대로(제거 업셀).
+  // Gemini JPEG 잔존 시 PNG로 통일
+  let outPng = await ensurePngBuffer(clean);
+  let noticeKind: "clean" | "easter" | "extra" =
+    mode === "extra" ? "extra" : "clean";
+  if (body.easter === true && body.easterStrip !== true) {
+    const variant: EasterVariant =
+      body.easterVariant === "animal" ? "animal" : "glyph";
+    const burned = await burnEasterWatermark(outPng, variant);
+    outPng = burned.markedPng;
+    noticeKind = "easter";
+  }
+
   let marked = order;
   if (mode === "primary" || mode === "again") {
     const m = markDownloaded(orderId, unlockToken);
@@ -149,7 +170,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (wantBinary) {
-    return new NextResponse(new Uint8Array(clean), {
+    return new NextResponse(new Uint8Array(outPng), {
       status: 200,
       headers: {
         "Content-Type": "image/png",
@@ -159,7 +180,7 @@ export async function POST(req: NextRequest) {
         "X-Djs-Downloaded-At": String(marked.downloadedAt ?? ""),
         "X-Djs-Preview-Asset": marked.previewAssetId || "",
         "X-Djs-Transport": transport,
-        "X-Djs-Notice": mode === "extra" ? "extra" : "clean",
+        "X-Djs-Notice": noticeKind,
       },
     });
   }
@@ -179,10 +200,12 @@ export async function POST(req: NextRequest) {
     previewVault: nextVault,
     previewAssetId: marked.previewAssetId,
     mimeType: "image/png",
-    cleanBase64: clean.toString("base64"),
+    cleanBase64: outPng.toString("base64"),
     notice:
-      mode === "extra"
+      noticeKind === "extra"
         ? "추가 컷을 드렸습니다."
-        : "클린 이미지를 드렸습니다. 미리보기 워터마크는 다운로드본에 없습니다.",
+        : noticeKind === "easter"
+          ? "희소 워터마크 컷을 드렸습니다. (클린 원본은 추후 워터마크 제거로)"
+          : "클린 이미지를 드렸습니다. 미리보기 워터마크는 다운로드본에 없습니다.",
   });
 }

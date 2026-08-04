@@ -6,6 +6,7 @@ import { PRINT_GUIDE, PRINTING_BOX } from "@/lib/printingBox";
 type EmailDeliverFormProps = {
   disabled?: boolean;
   busyLabel?: string;
+  title?: string;
   onSend: (email: string) => Promise<{ ok: boolean; message: string }>;
 };
 
@@ -13,6 +14,7 @@ type EmailDeliverFormProps = {
 export default function EmailDeliverForm({
   disabled,
   busyLabel = "보내는 중…",
+  title = "이메일로 받기",
   onSend,
 }: EmailDeliverFormProps) {
   const [email, setEmail] = useState("");
@@ -38,7 +40,7 @@ export default function EmailDeliverForm({
 
   return (
     <div className="rounded-xl border border-ink-200 bg-white p-3 space-y-2">
-      <p className="text-xs font-semibold text-ink-800">이메일로 받기</p>
+      <p className="text-xs font-semibold text-ink-800">{title}</p>
       <p className="text-[11px] leading-relaxed text-ink-500">
         사진에 저장이 안 될 때 · 메일함에서 열어 {PRINTING_BOX.name}에 올리세요. (
         {PRINT_GUIDE.label} · 제공 개시 기록)
