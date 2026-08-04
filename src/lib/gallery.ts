@@ -46,16 +46,6 @@ export const GALLERY_ITEMS: GalleryItem[] = [
     afterSrc: "/gallery/real-m-mid-after.png",
   },
   {
-    id: "sian-aligned",
-    purposeId: "resume",
-    look: "woman",
-    season: "mid",
-    title: "이력서 · 배경 교체 샘플",
-    note: "동일 포즈 · 배경만 단정 (참고)",
-    beforeSrc: "/gallery/sian-aligned-before.png",
-    afterSrc: "/gallery/sian-aligned-after.png",
-  },
-  {
     id: "resume-w-young",
     purposeId: "resume",
     look: "woman",

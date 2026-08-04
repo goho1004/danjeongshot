@@ -265,6 +265,9 @@ export default function MakeStudio() {
           layoutBusy={state.layoutBusy}
           primaryShotId={state.primaryShotId}
           shots={state.shots}
+          selectedShotId={state.selectedShotId}
+          setSelectedShotId={state.setSelectedShotId}
+          setPreviewVault={state.setPreviewVault}
           download={download}
           saveReadyFile={saveReadyFile}
           prepareAndSaveDefaultLayout={prepareAndSaveDefaultLayout}

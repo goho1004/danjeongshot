@@ -10,6 +10,7 @@ import {
 } from "react";
 import Link from "next/link";
 import TileDiagram from "@/components/TileDiagram";
+import WatermarkFrame from "@/components/WatermarkFrame";
 import InlineError from "@/components/make/InlineError";
 import DownloadPreviewModal from "@/components/make/DownloadPreviewModal";
 import EmailDeliverForm from "@/components/make/EmailDeliverForm";
@@ -64,6 +65,9 @@ type PaidDonePanelProps = {
   layoutBusy: boolean;
   primaryShotId: string | null;
   shots: Shot[];
+  selectedShotId: string | null;
+  setSelectedShotId: (id: string) => void;
+  setPreviewVault: (vault: string | null) => void;
   download: () => Promise<boolean> | boolean | void;
   saveReadyFile: () => Promise<boolean> | boolean | void;
   prepareAndSaveDefaultLayout: (shot: Shot) => Promise<unknown>;
@@ -124,6 +128,9 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
     layoutBusy,
     primaryShotId,
     shots,
+    selectedShotId,
+    setSelectedShotId,
+    setPreviewVault,
     download,
     saveReadyFile,
     prepareAndSaveDefaultLayout,
@@ -367,7 +374,9 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
           <p className="text-sm font-semibold text-accent-deep">받기</p>
           <p className="mt-1 text-xs text-ink-500">
             {awaitingPhoto
-              ? "지금 · 단정 PNG를 사진에 저장하세요. 미리보기 확인 후 「저장」을 누르면 됩니다."
+              ? shots.length > 1
+                ? `지금 · ${shots.length}장 중 고른 컷을 사진에 저장하세요. 미리보기 확인 후 「저장」.`
+                : "지금 · 단정 PNG를 사진에 저장하세요. 미리보기 확인 후 「저장」을 누르면 됩니다."
               : awaitingPrint
                 ? isPlus
                   ? "다음 · 플러스에 포함된 인화용(반명함·증명)을 저장하세요."
@@ -411,16 +420,56 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
         </div>
       )}
 
-      {/* Step 1 — only primary while awaiting photo */}
+      {/* Step 1 — pick cut (basic·plus same) then save */}
       {awaitingPhoto && (
         <>
+          {shots.length > 1 && (
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold tracking-wide text-studio">
+                받을 컷 고르기 · {shots.length}장
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {shots.map((shot) => {
+                  const active = selectedShotId === shot.id;
+                  return (
+                    <button
+                      key={shot.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedShotId(shot.id);
+                        if (shot.vault) setPreviewVault(shot.vault);
+                      }}
+                      className={`relative text-left ${
+                        active ? "rounded-lg ring-2 ring-accent/50" : ""
+                      }`}
+                    >
+                      {active && (
+                        <span className="absolute right-1 top-1 z-10 rounded bg-accent px-1 py-0.5 text-[9px] font-semibold text-white">
+                          선택
+                        </span>
+                      )}
+                      {shot.easter && (
+                        <span className="absolute left-1 top-1 z-10 rounded bg-ink-800/80 px-1 py-0.5 text-[9px] font-medium text-white">
+                          희소
+                        </span>
+                      )}
+                      <WatermarkFrame src={shot.imageUrl} locked={false} />
+                      <p className="mt-1 truncate px-0.5 text-[10px] font-medium text-ink-600">
+                        {shot.label}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <button
             type="button"
             onClick={() => openModal({ kind: "clean" })}
             disabled={!selectedUrl || busy}
             className="w-full rounded-xl bg-accent py-3.5 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {downloading ? "준비 중…" : "사진에 저장"}
+            {downloading ? "준비 중…" : "이 컷 · 사진에 저장"}
           </button>
           <p className="text-center text-[11px] text-ink-500 -mt-2">
             미리보기 → 「저장」→ 공유 창 「이미지 저장」
@@ -492,9 +541,8 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
         </div>
       )}
 
-      {/* Secondary — always open (no closed details). After save, add-ons sit above email. */}
-      {(downloaded || savedOnce || isPlus) && (
-        <div className="space-y-4 border-t border-accent/15 pt-4">
+      {/* Secondary — basic·plus 동일 (인화 포함만 plus 차이) */}
+      <div className="space-y-4 border-t border-accent/15 pt-4">
           {savedOnce && primaryShotId && (
             <section
               className="rounded-xl border border-ink-200 bg-white px-3 py-3 space-y-3 overflow-hidden"
@@ -774,7 +822,6 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
             .
           </p>
         </div>
-      )}
 
       <DownloadPreviewModal
         open={!!modal}

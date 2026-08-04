@@ -3,15 +3,13 @@
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
 import { POSITIONING, TRUST_CHIPS } from "@/lib/purposes";
-import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 
-const HERO = {
-  beforeSrc: "/gallery/real-w-mid-before.png",
-  afterSrc: "/gallery/real-w-mid-after.png",
+const HERO_AFTER = {
+  src: "/gallery/real-w-mid-after.png",
   title: "이력서 · 여성 · 중년",
 };
 
-/** 시안형 히어로: 카피 + BA 슬라이더 증거 */
+/** 히어로: 카피 + 단정 결과 한 장 (B/A는 갤러리) */
 export default function HeroWithSlider() {
   return (
     <section className="hero-wash relative min-h-[100svh] pt-16">
@@ -48,7 +46,7 @@ export default function HeroWithSlider() {
               href="#gallery"
               className="focus-ring rounded-full bg-white px-5 py-3 text-sm font-semibold text-ink-700 ring-1 ring-ink-100 transition hover:text-studio"
             >
-              샘플 비교 보기
+              전 · 후 샘플 보기
             </a>
           </div>
           <ul className="animate-fade mt-8 flex flex-wrap gap-2">
@@ -67,13 +65,22 @@ export default function HeroWithSlider() {
         </div>
 
         <div className="animate-rise-3 mx-auto w-full max-w-[380px] md:max-w-none">
-          <BeforeAfterSlider
-            beforeSrc={HERO.beforeSrc}
-            afterSrc={HERO.afterSrc}
-            beforeAlt={`${HERO.title} · 전`}
-            afterAlt={`${HERO.title} · 후`}
-            aspectClass="aspect-[3/4]"
-          />
+          <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-ink-100 shadow-lift ring-1 ring-ink-100">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={HERO_AFTER.src}
+              alt={`${HERO_AFTER.title} · 단정`}
+              className="h-full w-full object-cover"
+            />
+            <span className="absolute bottom-3 right-3 rounded-md bg-white/90 px-2 py-1 text-[10px] font-semibold tracking-wide text-studio">
+              단정
+            </span>
+          </div>
+          <p className="mt-2 text-center text-[11px] font-medium text-ink-400">
+            <a href="#gallery" className="hover:text-studio">
+              아래에서 전 · 후 비교 →
+            </a>
+          </p>
         </div>
       </div>
     </section>

@@ -26,6 +26,13 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+  /* 갤러리 B/A는 의도적 데모 — 감속 모션에서도 왕복 유지 */
+  .ba-sweep {
+    animation: ba-sweep 3.4s ease-in-out infinite !important;
+  }
+  .ba-sweep-handle {
+    animation: ba-sweep-left 3.4s ease-in-out infinite !important;
+  }
 }
 
 @keyframes rise {
@@ -46,6 +53,35 @@ body {
   to {
     opacity: 1;
   }
+}
+
+/* Before/After auto sweep — width of before pane */
+@keyframes ba-sweep {
+  0%,
+  100% {
+    width: 14%;
+  }
+  50% {
+    width: 86%;
+  }
+}
+
+@keyframes ba-sweep-left {
+  0%,
+  100% {
+    left: 14%;
+  }
+  50% {
+    left: 86%;
+  }
+}
+
+.ba-sweep {
+  animation: ba-sweep 3.4s ease-in-out infinite;
+}
+
+.ba-sweep-handle {
+  animation: ba-sweep-left 3.4s ease-in-out infinite;
 }
 
 .animate-rise {

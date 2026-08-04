@@ -29,14 +29,15 @@ export default function PreviewStep({
     ? selected.imageUrlClean || selected.imageUrl
     : null;
   const canCompare = Boolean(selfie && afterSrc);
+  const multi = shots.length > 1;
 
   return (
     <div>
-      <h2 className="text-sm font-semibold text-ink-700">5. 첫 컷</h2>
+      <h2 className="text-sm font-semibold text-ink-700">5. 컷 고르기</h2>
       <p className="mt-1 text-xs text-ink-500">
-        {canCompare
-          ? "슬라이더로 셀카와 단정 컷을 비교한 뒤, 아래에서 받을 컷을 고르세요"
-          : "결제 후 만든 컷입니다. 「이 컷 받기」로 PNG를 저장하세요"}
+        {multi
+          ? `${shots.length}장을 만들었습니다. 받을 컷을 고른 뒤 아래에서 「사진에 저장」하세요`
+          : "만든 컷입니다. 아래에서 「사진에 저장」하세요"}
         {mock ? " · MOCK" : ""}
       </p>
       {hasEaster && (
@@ -55,39 +56,48 @@ export default function PreviewStep({
             beforeAlt="업로드한 셀카"
             afterAlt={selected?.label ? `${selected.label} · 단정` : "단정 결과"}
             aspectClass="aspect-[3/4]"
+            autoPlay={false}
           />
         </div>
       )}
 
       <div
         className={`mt-4 grid gap-3 ${
-          shots.length > 1 ? "sm:grid-cols-2 lg:grid-cols-3" : "mx-auto max-w-sm"
+          multi ? "sm:grid-cols-2 lg:grid-cols-3" : "mx-auto max-w-sm"
         }`}
       >
-        {shots.map((shot) => (
-          <button
-            key={shot.id}
-            type="button"
-            onClick={() => {
-              setSelectedShotId(shot.id);
-              if (shot.vault) setPreviewVault(shot.vault);
-            }}
-            className={`relative text-left ${
-              selectedShotId === shot.id ? "rounded-xl ring-2 ring-accent/40" : ""
-            }`}
-          >
-            {shot.easter && (
-              <span className="absolute left-2 top-2 z-10 rounded bg-ink-800/80 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                희소
-              </span>
-            )}
-            <WatermarkFrame src={shot.imageUrl} locked={false} />
-            <p className="mt-1.5 px-1 text-xs font-medium text-ink-700">
-              {shot.label}
-              {shot.easter ? " · 제출 비권장" : ""}
-            </p>
-          </button>
-        ))}
+        {shots.map((shot) => {
+          const active = selectedShotId === shot.id;
+          return (
+            <button
+              key={shot.id}
+              type="button"
+              onClick={() => {
+                setSelectedShotId(shot.id);
+                if (shot.vault) setPreviewVault(shot.vault);
+              }}
+              className={`relative text-left ${
+                active ? "rounded-xl ring-2 ring-accent/40" : ""
+              }`}
+            >
+              {active && (
+                <span className="absolute right-2 top-2 z-10 rounded bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                  선택
+                </span>
+              )}
+              {shot.easter && (
+                <span className="absolute left-2 top-2 z-10 rounded bg-ink-800/80 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                  희소
+                </span>
+              )}
+              <WatermarkFrame src={shot.imageUrl} locked={false} />
+              <p className="mt-1.5 px-1 text-xs font-medium text-ink-700">
+                {shot.label}
+                {shot.easter ? " · 제출 비권장" : ""}
+              </p>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
