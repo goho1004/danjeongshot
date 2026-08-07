@@ -15,6 +15,11 @@
 | [AGENT_PARTNER_PLAN.md](AGENT_PARTNER_PLAN.md) | 모바일 대리 전문 (스크립트§15 · 정산§16) |
 | [PARTNER_PRINTINGBOX.md](PARTNER_PRINTINGBOX.md) | 단정×프박 4×6 상호50% · 인화 CTA·보관·계정 잠금 |
 | [`brochure/`](brochure/) | 임원 미팅 브로슈어 · 파트너 시트 |
+| **[PIPELINE.md](PIPELINE.md)** | 미확정 파이프라인 — **여주 영정복지 YJ-01** (긍정·미확정) |
+| **[PROPOSAL_영정복지_시도와.md](PROPOSAL_영정복지_시도와.md)** | 시·도 복지과 제안서 포인터 |
+| **[PROPOSAL_영정복지_초안_휴먼.md](PROPOSAL_영정복지_초안_휴먼.md)** | 복지 초안계획서(휴먼톤) · [Notion](https://app.notion.com/p/3b479736821e81bf8b84f5c928fbb7b5) |
+| **[FLOW_영정복지_제작전달.md](FLOW_영정복지_제작전달.md)** | 제작→전달 · 채널 A~D |
+| **[welfare/](welfare/)** | 민·관 PPTX 덱 · [Notion](https://app.notion.com/p/3b479736821e8142b26ef2e5d007bc1f) |
 
 ---
 

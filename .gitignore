@@ -14,3 +14,6 @@ tsconfig.tsbuildinfo
 # 대리점 실데이터 (계좌·사업자·주민)
 data/agents.json
 
+
+.tmp/
+tmp/

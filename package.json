@@ -18,7 +18,11 @@
     "maint:flow-e2e": "node scripts/maint/index.mjs flow-e2e",
     "maint:safari-multipart": "node scripts/maint/index.mjs safari-multipart",
     "maint:gate": "node scripts/maint/index.mjs gate",
-    "maint:loop": "node scripts/maint/index.mjs loop"
+    "maint:loop": "node scripts/maint/index.mjs loop",
+    "watchdog:cday": "node scripts/watchdog-cday.mjs",
+    "watchdog:cday:gate": "node scripts/watchdog-cday.mjs --gate",
+    "watchdog:cday:notify": "node scripts/watchdog-cday.mjs --notify",
+    "launch:day": "node -e \"console.log('C-Day playbook: docs/LAUNCH_DAY_PLAYBOOK.md\\nSkill: danjeongshot-launch\\nRun: npm run watchdog:cday')\""
   },
   "dependencies": {
     "@google/genai": "^2.12.0",

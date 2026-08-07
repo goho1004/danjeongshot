@@ -38,7 +38,29 @@ export type TriageResult = {
   /** 정책상 환불 가능 추정 (주문 상태와 AND) */
   refundHint: "deny" | "maybe" | "likely" | "n/a";
   links: { label: string; href: string }[];
+  /** 환불·중요만 와치독(업무폰) SMS — escalate_human만으로는 false */
+  notifyWatchdog: boolean;
 };
+
+/** 환불건·urgent만 업무폰 보고. 일반 escalate_human · FAQ는 자동답만. */
+export function shouldNotifyWatchdog(triage: Pick<TriageResult, "intent" | "actions">): boolean {
+  if (triage.actions.includes("escalate_urgent")) return true;
+  if (triage.intent === "abuse_threat") return true;
+  if (
+    triage.intent === "refund_after_download" ||
+    triage.intent === "refund_before_download" ||
+    triage.intent === "duplicate_charge"
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function withNotifyFlag(
+  triage: Omit<TriageResult, "notifyWatchdog">
+): TriageResult {
+  return { ...triage, notifyWatchdog: shouldNotifyWatchdog(triage) };
+}
 
 type Rule = {
   intent: CsIntent;
@@ -112,12 +134,25 @@ const RULES: Rule[] = [
   {
     intent: "quality_likeness",
     confidence: "high",
-    keywords: ["안 닮", "닮지", "이상해", "못생겼", "별로", "마음에 안", "과보정", "어색"],
+    keywords: [
+      "안 닮",
+      "안닮",
+      "닮지",
+      "불만",
+      "분위기",
+      "이상해",
+      "못생겼",
+      "별로",
+      "마음에 안",
+      "과보정",
+      "어색",
+      "꽝",
+    ],
     refundHint: "deny",
     actions: ["offer_regen", "auto_reply"],
     reply:
-      "환불 대신 A/S로 도와드릴게요. 결제 후 「마음에 안 들어요 → 다시 만들기」→ 필요하면 「A/S 서비스」, 가능하면 더 밝은 정면 셀카로 바꿔 올려 주세요. 잘 나오는 법: /help#shoot-tips",
-    agentNote: "환불 ✗ · A/S + 촬영 팁.",
+      "불편을 드려 죄송합니다. 환불보다 A/S로 한 번 더 다시 만들어 드릴게요. 마음에 들지 않았던 결과 사진(또는 더 밝은 정면 셀카)을 카톡으로 보내 주시면 확인 후 다시 만들어 카톡으로 보내 드립니다. 잘 나오는 법: /help#shoot-tips",
+    agentNote: "카톡 A/S: 수신→옆창 Gemini 재생성→카톡 전달. 환불 ✗ · TG ✗",
   },
   {
     intent: "regen_request",
@@ -202,7 +237,7 @@ function normalize(text: string): string {
 export function triageCsMessage(message: string): TriageResult {
   const t = normalize(message);
   if (!t) {
-    return {
+    return withNotifyFlag({
       intent: "unknown",
       confidence: "low",
       reply: "문의 내용을 조금만 더 적어 주세요. 주문번호(ord_…)가 있으면 함께 부탁드립니다.",
@@ -210,12 +245,12 @@ export function triageCsMessage(message: string): TriageResult {
       actions: ["auto_reply"],
       refundHint: "n/a",
       links: [{ label: "도움말", href: LEGAL.help }],
-    };
+    });
   }
 
   for (const rule of RULES) {
     if (rule.keywords.some((k) => t.includes(k.toLowerCase()))) {
-      return {
+      return withNotifyFlag({
         intent: rule.intent,
         confidence: rule.confidence,
         reply: rule.reply,
@@ -223,11 +258,11 @@ export function triageCsMessage(message: string): TriageResult {
         actions: rule.actions,
         refundHint: rule.refundHint,
         links: buildLinks(rule.actions),
-      };
+      });
     }
   }
 
-  return {
+  return withNotifyFlag({
     intent: "general",
     confidence: "low",
     reply:
@@ -239,7 +274,7 @@ export function triageCsMessage(message: string): TriageResult {
       { label: "환불 정책", href: LEGAL.refund },
       { label: "도움말", href: LEGAL.help },
     ],
-  };
+  });
 }
 
 function buildLinks(actions: CsAction[]): { label: string; href: string }[] {
@@ -266,14 +301,14 @@ export function resolveRefundWithOrder(
   const orderTag = `paid=${order.paid} downloaded=${!!order.downloadedAt} redo=${order.redoUsed} asv=${order.asvUsed}`;
 
   if (triage.refundHint === "deny" || triage.intent === "gov_id_rejected") {
-    return {
+    return withNotifyFlag({
       ...triage,
       agentNote: `${triage.agentNote} | order: ${orderTag}`,
-    };
+    });
   }
 
   if (order.downloadedAt && (triage.intent === "refund_before_download" || triage.intent.includes("refund"))) {
-    return {
+    return withNotifyFlag({
       ...triage,
       intent: "refund_after_download",
       confidence: "high",
@@ -286,11 +321,11 @@ export function resolveRefundWithOrder(
         { label: "환불 정책", href: LEGAL.refund },
         { label: "도움말", href: LEGAL.help },
       ],
-    };
+    });
   }
 
   if (!order.downloadedAt && order.paid && triage.refundHint === "maybe") {
-    return {
+    return withNotifyFlag({
       ...triage,
       refundHint: "maybe",
       actions: ["offer_regen", "auto_reply", "escalate_human"],
@@ -298,40 +333,46 @@ export function resolveRefundWithOrder(
         triage.reply ||
         "미다운로드는 자동 환불이 아닙니다. 「이 컷 받기」·다시 만들기를 먼저 이용해 주세요. (/make?resume=1) 오류로 제공이 불가할 때만 사유를 남겨 주시면 운영자 승인 후 환불합니다.",
       agentNote: `${triage.agentNote} | 미다운로드·결제됨 → 받기 유도 · 자동환불 ✗ · 승인제`,
-    };
+    });
   }
 
   if (triage.actions.includes("offer_regen")) {
+    if (triage.intent === "quality_likeness" || triage.intent === "regen_request") {
+      return withNotifyFlag({
+        ...triage,
+        agentNote: `${triage.agentNote} | ${orderTag} · 카톡 A/S 경로`,
+      });
+    }
     if (order.redoUsed < 1) {
-      return {
+      return withNotifyFlag({
         ...triage,
         reply:
           "환불 대신 만들기 화면에서 「마음에 안 들어요 · 다시 만들어 볼게요」를 눌러 주세요. (다운로드 전)",
         agentNote: `${triage.agentNote} | redo 가능`,
-      };
+      });
     }
     if (order.asvUsed < 1) {
-      return {
+      return withNotifyFlag({
         ...triage,
         reply:
           "재생성은 이미 쓰셨네요. 「A/S 서비스로 한 번 더」를 이용해 주세요. (다운로드 전)",
         agentNote: `${triage.agentNote} | asv 가능`,
-      };
+      });
     }
-    return {
+    return withNotifyFlag({
       ...triage,
       reply:
         triage.reply +
         " 재생성·A/S를 모두 사용하셨습니다. 남은 컷을 받아 가 주세요. 추가 환불은 어렵습니다.",
       agentNote: `${triage.agentNote} | redo+asv 소진`,
       actions: triage.actions.filter((a) => a !== "offer_regen").concat("auto_reply"),
-    };
+    });
   }
 
-  return {
+  return withNotifyFlag({
     ...triage,
     agentNote: `${triage.agentNote} | order: ${orderTag}`,
-  };
+  });
 }
 
 export const CS_FAQ = [
@@ -353,7 +394,7 @@ export const CS_FAQ = [
   },
   {
     q: "안 닮아요 / 마음에 안 들어요",
-    a: "A/S로 도와드립니다. 결제 후 다시 만들기 1회 → A/S 1회. 더 밝은 정면 셀카로 바꾸면 결과가 좋아지는 경우가 많습니다. /help#shoot-tips",
+    a: "A/S로 한 번 더 다시 만들어 드립니다. 아쉬운 결과 사진(또는 더 밝은 셀카)을 카톡으로 보내 주시면 확인 후 카톡으로 보내 드려요. /help#shoot-tips",
   },
   {
     q: "어떻게 찍어야 잘 나오나요?",

@@ -110,6 +110,8 @@ npm run maint:gate -- --base https://danjeongshot.vercel.app
 | `maint:flow-e2e` | 받기→저장→레이아웃 UI |
 | `maint:check-debug` | 디버그 잔여 0건 |
 | `maint:loop` | gate 실패 시 exit 1 |
+| `watchdog:cday` | C-Day 카운트다운·주간 필수 |
+| `watchdog:cday:gate` | 카운트다운 + maint:gate |
 
 배포 후:
 

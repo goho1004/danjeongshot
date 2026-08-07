@@ -25,6 +25,9 @@ npm run maint:flow-e2e
 |------|------|
 | `maint:gate` | `{ "GREEN": true, "failures": [] }` |
 | `maint:loop` | gate 실패 시 exit 1 (CI·수동 루프) |
+| `watchdog:cday` | C-Day(2026-09-01) 카운트다운·주간 필수·체크리스트 |
+| `watchdog:cday:gate` | 위 + `maint:gate` (실패 시 exit 1) |
+| `launch:day` | C-Day 플레이북 경로 안내 (`LAUNCH_DAY_PLAYBOOK.md` · 스킬 `danjeongshot-launch`) |
 | `maint:health` | `/` `/make` 200, checkout POST 가능 |
 | `maint:download-loop` | `{"GREEN":true,...}` |
 | `maint:watermark` | 미리보기 PNG에 워터마크 존재 |
