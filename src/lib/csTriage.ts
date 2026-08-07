@@ -88,7 +88,7 @@ const RULES: Rule[] = [
     refundHint: "n/a",
     actions: ["escalate_urgent", "link_legal"],
     reply:
-      "불편을 드려 죄송합니다. 주문번호와 상황을 남겨 주시면 운영자가 확인 후 연락드리겠습니다. 환불·청약철회는 고지된 정책(다운로드 후 불가 등)을 따릅니다. 정책: /legal/refund",
+      "불편을 드려 죄송합니다. 주문번호와 상황을 남겨 주시면 운영자가 확인 후 연락드리겠습니다. 환불은 시스템 결함으로 파일을 받지 못한 경우에만 검토하며, 품질은 A/S로 안내합니다. 정책: /legal/refund",
     agentNote: "위협·분쟁 톤 → 즉시 사람. 감정 대응 금지, 사실·정책만.",
   },
   {
@@ -114,22 +114,34 @@ const RULES: Rule[] = [
   {
     intent: "refund_after_download",
     confidence: "high",
-    keywords: ["다운로드 했는데", "받았는데 환불", "저장했는데", "다운받", "환불해", "돈 돌려", "환불"],
+    keywords: [
+      "다운로드 했는데",
+      "받았는데 환불",
+      "저장했는데",
+      "다운받",
+      "환불해",
+      "돈 돌려",
+      "환불",
+      "캡처",
+      "스크린샷",
+      "화면 저장",
+      "찍어서",
+    ],
     refundHint: "deny",
     actions: ["auto_reply", "offer_regen", "link_legal"],
     reply:
-      "다운로드 후에는 환불이 어렵습니다. 품질이 아쉬우셨다면 다음에 다시 이용하실 때 결제 직후 「다시 만들기」·「A/S 서비스」와 더 밝은 정면 셀카로 받아 주세요. (이미 다운로드한 주문은 재생성도 불가합니다.) 촬영 팁: /help#shoot-tips · 정책: /legal/refund",
-    agentNote: "환불 → A/S·팁 유도. downloaded면 redo 불가 고지.",
+      "컷 생성이 성공한 뒤에는 제공이 시작된 것으로 안내드리고 있어, 단순 환불은 어렵습니다. 화면 저장·캡처도 「시스템 문제로 파일을 못 받은 경우」에 해당하지 않습니다. 품질이 아쉬우시면 받기 전 다시 만들기·A/S를 이용해 주세요. 팁: /help#shoot-tips · 정책: /legal/refund",
+    agentNote: "생성성공=제공개시. 캡처≠미전달. 품질→A/S. 환불=시스템 미전달만.",
   },
   {
     intent: "refund_before_download",
     confidence: "medium",
-    keywords: ["아직 다운", "다운로드 안", "안 받았", "결제만", "자동 환불"],
+    keywords: ["아직 다운", "다운로드 안", "안 받았", "결제만", "자동 환불", "받기 안"],
     refundHint: "maybe",
     actions: ["offer_regen", "auto_reply"],
     reply:
-      "다운로드하지 않으셨다고 자동 환불되지는 않아요. 먼저 만들기에서 「이 컷 받기」로 받아 보시고, 아쉬우면 다시 만들기·A/S를 이용해 주세요. (/make?resume=1) 시스템 오류로 정말 못 받으신 경우만 주문번호·사유를 남겨 주시면 운영자가 검토 후 승인 시에만 환불합니다. 팁: /help#shoot-tips",
-    agentNote: "미다운로드≠자동환불. 받기·A/S 유도 → 사유+관리자승인.",
+      "「이 컷 받기」를 누르지 않으셨다고 자동 환불되지는 않아요. 생성이 된 컷은 먼저 받아 보시고, 아쉬우면 다시 만들기·A/S를 이용해 주세요. (/make?resume=1) 시스템 오류로 생성이 안 되거나 전달이 반복 실패한 경우만 주문번호·사유를 남겨 주시면 검토합니다. 팁: /help#shoot-tips",
+    agentNote: "받기미클릭≠미전달. 시스템결함 미전달만 환불검토.",
   },
   {
     intent: "quality_likeness",
@@ -151,8 +163,8 @@ const RULES: Rule[] = [
     refundHint: "deny",
     actions: ["offer_regen", "auto_reply"],
     reply:
-      "불편을 드려 죄송합니다. 환불보다 A/S로 한 번 더 다시 만들어 드릴게요. 마음에 들지 않았던 결과 사진(또는 더 밝은 정면 셀카)을 카톡으로 보내 주시면 확인 후 다시 만들어 카톡으로 보내 드립니다. 잘 나오는 법: /help#shoot-tips",
-    agentNote: "카톡 A/S: 수신→옆창 Gemini 재생성→카톡 전달. 환불 ✗ · TG ✗",
+      "불편을 드려 죄송합니다. 품질은 환불 사유가 아니며, A/S로 한 번 더 맞춰 드릴게요. 마음에 들지 않은 결과 사진(또는 더 밝은 정면 셀카)을 카톡으로 보내 주세요. 팁: /help#shoot-tips",
+    agentNote: "품질≠환불. 카톡 A/S. TG ✗",
   },
   {
     intent: "regen_request",
@@ -161,7 +173,7 @@ const RULES: Rule[] = [
     refundHint: "n/a",
     actions: ["offer_regen", "auto_reply"],
     reply:
-      "결제 후 「마음에 안 들어요 → 다시 만들기」1회, 그래도 아쉬우면 「A/S 서비스」1회가 있습니다. 주문번호로 가능 여부를 확인해 드릴게요. (다운로드 후에는 불가)",
+      "결제 후 「마음에 안 들어요 → 다시 만들기」1회, 그래도 아쉬우면 「A/S 서비스」1회가 있습니다. 주문번호로 가능 여부를 확인해 드릴게요. (받기·제공 개시 후에는 불가)",
     agentNote: "redoUsed/asvUsed 확인. UI에서 분기.",
   },
   {
@@ -181,8 +193,8 @@ const RULES: Rule[] = [
     refundHint: "maybe",
     actions: ["auto_reply", "escalate_human"],
     reply:
-      "다른 브라우저·시크릿 모드에서 다시 시도해 보시고, 만들기에서 「이메일로 받기」로 메일함에 PNG를 받아 보세요. 주문번호를 남겨 주시면 확인합니다. 결제 후 다운로드·이메일 전 오류가 확인되면 재시도 또는 환불을 도와드립니다. 인화: /print",
-    agentNote: "기기/브라우저 이슈 흔함. 이메일 전달 유도 · 재발급 또는 환불.",
+      "다른 브라우저·시크릿 모드에서 다시 시도해 보시고, 만들기에서 「이메일로 받기」로 메일함에 PNG를 받아 보세요. 주문번호를 남겨 주시면 확인합니다. 시스템으로 생성·전달이 안 된 것이 확인되면 재시도 또는 환불을 검토합니다. 인화: /print",
+    agentNote: "시스템 미전달 가능 → 로그 확인. 이메일 유도.",
   },
   {
     intent: "kiosk_how",

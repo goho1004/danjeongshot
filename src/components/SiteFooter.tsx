@@ -77,8 +77,16 @@ export default function SiteFooter() {
           <p className="mt-3 text-ink-500">{b.vatNote}</p>
           <p className="mt-1 text-ink-400">{b.taxInvoiceNote}</p>
           <p className="mt-2 text-ink-300">
-            여권·신분증·관공서 제출용을 보장하지 않습니다. 디지털콘텐츠 특성상 다운로드 후 환불이
-            제한될 수 있습니다.
+            여권·신분증·관공서 제출용을 보장하지 않습니다. 디지털 컷은{" "}
+            <strong className="font-medium text-ink-400">생성 성공 시 제공이 시작</strong>되며,
+            환불은{" "}
+            <strong className="font-medium text-ink-400">
+              시스템 결함으로 파일을 받지 못한 경우
+            </strong>
+            만 검토합니다. 품질은 A/S로 안내합니다. 상세:{" "}
+            <Link href="/legal/refund" className="underline hover:text-ink-500">
+              환불·청약철회
+            </Link>
           </p>
         </div>
       </div>

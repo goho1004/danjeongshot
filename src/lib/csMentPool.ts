@@ -183,50 +183,70 @@ export const CS_MENT_POOL: MentItem[] = [
 인화: /print · 도움말: /help — 단정샷`,
   },
 
-  // ══════════ 환불 거절 (다운로드 후) ══════════
+  // ══════════ 환불 거절 (다운로드 후 · 생성성공·캡처) ══════════
   {
     id: "rf_after_dl",
     lane: "refund_deny",
     intents: ["refund_after_download"],
-    label: "다운 후·표준 거절",
+    label: "생성성공 후·표준 거절",
     preferred: true,
     tone: "policy",
-    when: "downloaded 확인 · 품질불만으로 환불 요구",
-    body: `다운로드 후에는 환불이 어렵습니다. 품질이 아쉬우셨다면 A/S·다시 만들기는 다운로드 전에만 가능합니다.
+    when: "생성·받기 후 품질/변심 환불 · 기본",
+    body: `컷 생성이 성공한 뒤에는 제공이 시작된 것으로 안내드리고 있어, 단순 환불은 어렵습니다. 품질이 아쉬우셨다면 받기 전 다시 만들기·A/S를 이용해 주세요.
 촬영 팁: /help#shoot-tips · 정책: /legal/refund`,
   },
   {
     id: "rf_after_empathy",
     lane: "refund_deny",
     intents: ["refund_after_download"],
-    label: "다운 후·공감 후 정책",
+    label: "생성성공 후·공감",
     tone: "empathy",
-    when: "감정 톤 강함 · 먼저 공감 한 줄 후 정책",
-    body: `기대에 못 미쳐 불편을 드린 점 죄송합니다. 다만 클린 PNG를 받으신 뒤에는 환불이 어렵습니다.
-다음에 이용하실 때는 결제 직후 「다시 만들기」·「A/S」를 먼저 써 주세요. 정책: /legal/refund`,
+    when: "감정 톤 강함 · 공감 후 정책",
+    body: `기대에 못 미쳐 불편을 드린 점 죄송합니다. 다만 생성이 완료된 뒤에는 제공이 시작된 것으로 보아 단순 환불은 어렵습니다.
+다음에 이용하실 때는 받기 전 「다시 만들기」·「A/S」를 먼저 써 주세요. 정책: /legal/refund`,
   },
   {
     id: "rf_after_offer_as",
     lane: "refund_deny",
     intents: ["refund_after_download", "quality_likeness"],
-    label: "다운 후·환불✗ + 운영 A/S 제안",
+    label: "환불✗ + 운영 A/S 제안",
     tone: "guide",
     when: "환불은 안 되지만 카톡 A/S로 관계 회복 가능 시",
-    body: `다운로드 후 환불은 어렵습니다. 대신 결과 사진을 카톡으로 보내 주시면, 가능한 범위에서 A/S 컷을 한 번 더 만들어 드릴지 확인해 드리겠습니다.
+    body: `환불은 시스템 문제로 파일을 받지 못한 경우에만 검토합니다. 품질이 아쉬우시면 결과 사진을 카톡으로 보내 주세요. 가능한 범위에서 A/S 컷을 한 번 더 맞춰 드리겠습니다.
+정책: /legal/refund`,
+  },
+  {
+    id: "rf_capture_not_undelivered",
+    lane: "refund_deny",
+    intents: ["refund_after_download", "refund_before_download"],
+    label: "캡처·화면확인 ≠ 미전달",
+    tone: "policy",
+    when: "캡처·스크린샷·「안 받았」주장이나 화면/생성은 된 경우",
+    body: `화면에 컷이 보이셨거나 저장·캡처가 가능한 상태는 「시스템 결함으로 파일을 못 받은 경우」에 해당하지 않습니다. 환불은 그 경우에만 검토하며, 품질은 받기 전 다시 만들기·A/S로 안내드립니다.
 정책: /legal/refund`,
   },
 
-  // ══════════ 환불 maybe / 중복 ══════════
+  // ══════════ 환불 maybe / 중복 / 미전달 ══════════
   {
     id: "rf_before",
     lane: "refund_maybe",
     intents: ["refund_before_download"],
-    label: "미다운·자동환불 ✗",
+    label: "받기 전·자동환불 ✗",
     preferred: true,
     tone: "guide",
-    when: "「안 받았는데 환불」·미다운로드",
-    body: `다운로드하지 않으셨다고 자동 환불되지는 않아요. 먼저 「이 컷 받기」로 받아 보시고, 아쉬우면 다시 만들기·A/S를 이용해 주세요.
-오류로 정말 못 받으신 경우만 주문번호·사유를 남겨 주시면 검토합니다. 팁: /help#shoot-tips`,
+    when: "「안 받았는데 환불」·받기 미클릭 (생성은 된 경우)",
+    body: `「이 컷 받기」를 누르지 않으셨다고 자동 환불되지는 않아요. 생성이 된 컷은 먼저 받아 보시고, 아쉬우면 다시 만들기·A/S를 이용해 주세요.
+시스템 오류로 생성이 안 되거나 전달이 반복 실패한 경우만 주문번호·사유를 남겨 주시면 검토합니다. 팁: /help#shoot-tips`,
+  },
+  {
+    id: "rf_system_undelivered",
+    lane: "refund_maybe",
+    intents: ["refund_before_download", "download_fail"],
+    label: "시스템 미전달·검토",
+    tone: "escalate",
+    when: "생성 실패·받기/이메일 반복 실패 등 결함 의심",
+    body: `시스템 문제로 컷이 생성되지 않았거나 파일을 받지 못하신 것으로 보입니다. 주문번호와 증상(화면 메시지·시각)을 남겨 주세요. 확인 후 재시도 또는 환불을 검토하겠습니다.
+정책: /legal/refund`,
   },
   {
     id: "rf_before_resume",
@@ -420,7 +440,7 @@ export const CS_MENT_POOL: MentItem[] = [
     preferred: true,
     tone: "escalate",
     when: "고소·공정위·변호사 톤 · 감정 대응 ✗ · TG 보고",
-    body: `불편을 드려 죄송합니다. 주문번호와 상황을 남겨 주시면 운영자가 확인 후 연락드리겠습니다. 환불·청약철회는 고지된 정책을 따릅니다. 정책: /legal/refund`,
+    body: `불편을 드려 죄송합니다. 주문번호와 상황을 남겨 주시면 운영자가 확인 후 연락드리겠습니다. 환불은 시스템 결함으로 파일을 받지 못한 경우에만 검토하며, 품질은 A/S로 안내합니다. 정책: /legal/refund`,
   },
   {
     id: "abuse_min",
@@ -429,7 +449,7 @@ export const CS_MENT_POOL: MentItem[] = [
     label: "위협·최소 응답",
     tone: "short",
     when: "욕설·협박 반복 · 짧게만",
-    body: `주문번호와 사실관계(결제·다운로드 여부)를 남겨 주시면 정책에 따라 확인하겠습니다. /legal/refund`,
+    body: `주문번호와 사실관계(결제·생성·전달 여부)를 남겨 주시면 정책에 따라 확인하겠습니다. /legal/refund`,
   },
 
   // ══════════ 일반 ══════════

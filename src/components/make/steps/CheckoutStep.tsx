@@ -66,8 +66,13 @@ export default function CheckoutStep({
         <Link href="/legal/refund" className="underline hover:text-ink-600" target="_blank">
           환불 정책
         </Link>
-        에 동의한 것으로 봅니다. 받은 뒤·화면 캡처 후 환불은 어렵고, 미다운로드 자동 환불은 없으며,
-        여권·관공서 제출용은 아니고, 배송은 없습니다.
+        에 동의한 것으로 봅니다. 결제는 컷 생성·제공 의사표시이며,{" "}
+        <strong className="font-medium text-ink-500">생성이 성공하면</strong> 제공이 시작됩니다.{" "}
+        <strong className="font-medium text-ink-500">
+          환불은 시스템 문제로 파일을 전달받지 못한 경우
+        </strong>
+        에만 검토하고, 품질은 받기 전 다시 만들기·A/S로 안내합니다. 여권·관공서용은 아니며 배송은
+        없습니다.
       </p>
       <button
         type="button"
