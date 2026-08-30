@@ -1,8 +1,7 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import ShootTips from "@/components/ShootTips";
 import PurposeUploadStep from "@/components/make/steps/PurposeUploadStep";
 import PreviewStep from "@/components/make/steps/PreviewStep";
 import CheckoutStep from "@/components/make/steps/CheckoutStep";
@@ -27,8 +26,11 @@ import {
   type PurposeId,
 } from "@/lib/purposes";
 
-export default function MakeStudio() {
+export type MakeStudioVariant = "make" | "result";
+
+export default function MakeStudio({ variant = "make" }: { variant?: MakeStudioVariant }) {
   const params = useSearchParams();
+  const router = useRouter();
   const initialRaw = (params.get("purpose") as PurposeId) || "resume";
   const initialPurpose = PURPOSES.some((p) => p.id === initialRaw) ? initialRaw : "resume";
 
@@ -62,6 +64,14 @@ export default function MakeStudio() {
       /* ignore */
     }
   }, [state.partnerCode, state.setPartnerCode]);
+
+  // /make 에서 이미 결제된 세션이면 /result 로 보냄
+  useEffect(() => {
+    if (variant !== "make") return;
+    if (!state.paid) return;
+    const sid = state.orderId ? `?session=${encodeURIComponent(state.orderId)}` : "";
+    router.replace(`/result${sid}`);
+  }, [variant, state.paid, state.orderId, router]);
 
   const deviceFp = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -161,40 +171,40 @@ export default function MakeStudio() {
     savedOnce: state.savedOnce,
   });
 
-  return (
-    <div className="mt-8 space-y-8">
-      <div className="flex flex-wrap gap-2">
-        {TRUST_CHIPS.map((c) => (
-          <span
-            key={c}
-            className="rounded-md border border-ink-100 bg-white/80 px-2.5 py-1 text-xs text-ink-500"
-          >
-            {c}
-          </span>
-        ))}
-      </div>
+  if (variant === "make") {
+    return (
+      <div className="mt-8 space-y-8">
+        <div className="flex flex-wrap gap-2">
+          {TRUST_CHIPS.map((c) => (
+            <span
+              key={c}
+              className="rounded-md border border-ink-100 bg-white/80 px-2.5 py-1 text-xs text-ink-500"
+            >
+              {c}
+            </span>
+          ))}
+        </div>
 
-      <PurposeUploadStep
-        purposeId={state.purposeId}
-        setPurposeId={state.setPurposeId}
-        setPackId={state.setPackId}
-        subjectLook={state.subjectLook}
-        setSubjectLook={state.setSubjectLook}
-        subjectSeason={state.subjectSeason}
-        setSubjectSeason={state.setSubjectSeason}
-        extraPresetIds={state.extraPresetIds}
-        toggleExtraPreset={state.toggleExtraPreset}
-        extraCustom={state.extraCustom}
-        setExtraCustom={state.setExtraCustom}
-        selfie={state.selfie}
-        inputRef={state.inputRef}
-        onFile={onFile}
-        processFile={processFile}
-        error={state.error}
-        errorAt={state.errorAt}
-      />
+        <PurposeUploadStep
+          purposeId={state.purposeId}
+          setPurposeId={state.setPurposeId}
+          setPackId={state.setPackId}
+          subjectLook={state.subjectLook}
+          setSubjectLook={state.setSubjectLook}
+          subjectSeason={state.subjectSeason}
+          setSubjectSeason={state.setSubjectSeason}
+          extraPresetIds={state.extraPresetIds}
+          toggleExtraPreset={state.toggleExtraPreset}
+          extraCustom={state.extraCustom}
+          setExtraCustom={state.setExtraCustom}
+          selfie={state.selfie}
+          inputRef={state.inputRef}
+          onFile={onFile}
+          processFile={processFile}
+          error={state.error}
+          errorAt={state.errorAt}
+        />
 
-      {!state.paid && (
         <CheckoutStep
           nudgeIdx={nudgeIdx}
           packId={state.packId}
@@ -213,9 +223,27 @@ export default function MakeStudio() {
             process.env.NEXT_PUBLIC_PAYMENT_MODE === "toss" ? "toss" : "sandbox"
           }
         />
+      </div>
+    );
+  }
+
+  // variant === "result"
+  return (
+    <div className="mt-8 space-y-8">
+      {!state.paid && (
+        <div className="rounded-xl border border-ink-100 bg-white/90 p-5 text-sm text-ink-600">
+          <p>결제 정보가 없습니다. 만들기에서 다시 결제해 주세요.</p>
+          <button
+            type="button"
+            className="mt-4 text-sm font-semibold text-studio underline"
+            onClick={() => router.push("/make")}
+          >
+            만들기로 돌아가기
+          </button>
+        </div>
       )}
 
-      {!state.hasPreview && (
+      {state.paid && !state.hasPreview && (
         <FirstCutButton
           paid={state.paid}
           selfie={!!state.selfie}
@@ -298,10 +326,6 @@ export default function MakeStudio() {
           downloadExtra={downloadExtra}
         />
       )}
-
-      <div id="shoot-tips-full">
-        <ShootTips />
-      </div>
     </div>
   );
 }

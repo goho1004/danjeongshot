@@ -19,7 +19,7 @@ type CheckoutStepProps = {
   error: string | null;
   errorAt: string | null;
   hasSelfie: boolean;
-  /** sandbox = 베타 결제 시뮬레이션 */
+  /** sandbox = 로컬/테스트 결제 시뮬레이션 (UI에 베타 표기 ✗) */
   paymentMode?: "sandbox" | "toss";
 };
 
@@ -43,19 +43,12 @@ export default function CheckoutStep({
 
   return (
     <div className="rounded-2xl border border-accent/25 bg-white/90 p-5 shadow-sm">
-      {sandbox ? (
-        <p className="mb-3 rounded-lg border border-studio/20 bg-studio/5 px-3 py-2 text-[11px] leading-relaxed text-studio-deep">
-          <span className="font-semibold">베타 · 결제 시뮬레이션</span>
-          — 지금은 실제 출금 없이 흐름만 확인합니다. 사업자·PG 준비 후 실결제로 바뀝니다.
-        </p>
-      ) : null}
       <h2 className="text-sm font-semibold text-ink-700">팩 선택 · 결제</h2>
       <p className="mt-1 text-sm leading-relaxed text-ink-700">{PAY_NUDGE_LINES[nudgeIdx]}</p>
       <PackPicker packId={packId} setPackId={setPackId} bullets={packBullets} />
       <p className="mt-4 text-2xl font-semibold">₩{amount.toLocaleString("ko-KR")}</p>
       <p className="mt-1 text-xs text-ink-500">
         {packName} · {packTagline}
-        {sandbox ? " · 베타(시뮬레이션)" : ""}
       </p>
       <p className="mt-2 text-[11px] leading-relaxed text-ink-400">
         결제하시면{" "}
@@ -71,8 +64,7 @@ export default function CheckoutStep({
         <strong className="font-medium text-ink-500">
           환불은 시스템 문제로 파일을 전달받지 못한 경우
         </strong>
-        에만 검토하고, 품질은 받기 전 다시 만들기·A/S로 안내합니다. 여권·관공서용은 아니며 배송은
-        없습니다.
+        에만 검토하고, 품질은 받기 전 다시 만들기·A/S로 안내합니다. 배송은 없습니다.
       </p>
       <button
         type="button"
@@ -80,14 +72,11 @@ export default function CheckoutStep({
         disabled={paying || !!busyKind || !hasSelfie}
         className="mt-4 w-full rounded-xl bg-ink-950 py-3.5 text-sm font-semibold text-white disabled:opacity-50"
       >
-        {paying
-          ? "결제 처리 중…"
-          : !hasSelfie
-            ? "셀카를 올린 뒤 결제"
-            : sandbox
-              ? "결제하기 (베타 시뮬레이션)"
-              : "결제하기"}
+        {paying ? "결제 처리 중…" : !hasSelfie ? "셀카를 올린 뒤 결제" : "결제하기"}
       </button>
+      {sandbox ? (
+        <p className="mt-2 text-center text-[10px] text-ink-300">테스트 결제 모드</p>
+      ) : null}
       <InlineError at="checkout" errorAt={errorAt} message={error} />
     </div>
   );

@@ -4,7 +4,7 @@ import MakeStudio from "@/components/make/MakeStudio";
 import SiteFooter from "@/components/SiteFooter";
 import { BRAND } from "@/lib/brand";
 
-export default function MakePage() {
+export default function ResultPage() {
   return (
     <div className="min-h-screen bg-paper">
       <header className="sticky top-0 z-40 border-b border-ink-100/80 bg-paper/90 backdrop-blur-xl">
@@ -13,22 +13,21 @@ export default function MakePage() {
             {BRAND.sign}
           </Link>
           <div className="flex items-center gap-4">
-            <Link href="/#gallery" className="text-[11px] font-medium text-ink-500 hover:text-ink-800">
-              갤러리
+            <Link href="/make" className="text-[11px] font-medium text-ink-500 hover:text-ink-800">
+              만들기
             </Link>
             <p className="text-[11px] font-medium text-ink-400">{BRAND.speed}</p>
           </div>
         </div>
       </header>
       <div className="mx-auto max-w-3xl px-5 py-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-studio">Make</p>
-        <h1 className="mt-2 font-display text-3xl text-ink-950 md:text-4xl">만들기</h1>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-studio">Result</p>
+        <h1 className="mt-2 font-display text-3xl text-ink-950 md:text-4xl">결과</h1>
         <p className="mt-3 text-sm leading-relaxed text-ink-500">
-          용도와 사진 속 분을 고른 뒤 셀카를 올리고, 기본·플러스 중 골라 결제하세요. 결제 후 결과
-          화면에서 컷을 고를 수 있어요. {BRAND.speed}.
+          결제 후 컷을 만들고, 마음에 드는 한 장을 고른 뒤 받으세요. {BRAND.speed}.
         </p>
         <Suspense fallback={<p className="mt-8 text-ink-500">로딩…</p>}>
-          <MakeStudio />
+          <MakeStudio variant="result" />
         </Suspense>
       </div>
       <SiteFooter />

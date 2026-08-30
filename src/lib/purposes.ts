@@ -23,8 +23,8 @@ export type SubjectOption = {
 
 export const SUBJECT_LOOKS: SubjectOption[] = [
   { id: "as_photo", label: "사진 그대로", hint: "보이는 모습 유지" },
-  { id: "woman", label: "여성분", hint: "단정한 여성 프로필로" },
-  { id: "man", label: "남성분", hint: "단정한 남성 프로필로" },
+  { id: "woman", label: "여성", hint: "단정한 여성 프로필로" },
+  { id: "man", label: "남성", hint: "단정한 남성 프로필로" },
 ];
 
 export const SUBJECT_SEASONS: SubjectOption[] = [
@@ -126,7 +126,7 @@ export type ExtraPromptPreset = {
   label: string;
   text: string;
   group: ExtraPresetGroup;
-  /** 이 look일 때 숨김 (예: 여성분 → 수염) */
+  /** 이 look일 때 숨김 (예: 여성 → 수염) */
   hideForLooks?: SubjectLookId[];
 };
 
@@ -177,7 +177,7 @@ export const EXTRA_PROMPT_PRESETS: ExtraPromptPreset[] = [
   },
   {
     id: "hair",
-    label: "머리 정돈만",
+    label: "머리 정돈",
     text: "Do not change hairstyle; only light tidy.",
     group: "misc",
   },
@@ -346,7 +346,7 @@ export const PACKS: {
     tagline: "3컷 선택 + 자주 쓰는 인화 규격 2종",
     bullets: [
       "기본과 동일 · 3컷 중 1장 선택",
-      "반명함·증명 인화 레이아웃 포함",
+      "플러스는 민원 규격(3×4cm, 4×3cm) 파일 추가 제공",
       "키오스크에서 바로 뽑을 타일 PNG",
     ],
     recommended: true,
@@ -365,10 +365,9 @@ export function packAmountKrw(id: PackId): number {
 export const sheetAddonKrw = 0;
 
 export const TRUST_CHIPS = [
-  "베타 · 약 1분",
+  "약 1분",
   "받은 뒤에는 환불이 어려워요",
   "올린 사진·결과물은 저장하지 않아요",
-  "여권·관공서 제출용은 아니에요",
 ] as const;
 
 /** 시장 포지션 — 홈·도움말용 (과장·시안 물량전 ✗) */

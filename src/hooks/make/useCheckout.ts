@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { loadTossPayments } from "@tosspayments/tosspayments-sdk";
 import { CHECKOUT_SESSION_KEY, RESTORE_PAID_KEY } from "@/lib/make/types";
 import type { PackId } from "@/lib/purposes";
@@ -12,6 +13,7 @@ export function useCheckout(
   subjectLook: string,
   subjectSeason: string
 ) {
+  const router = useRouter();
   const {
     selfie,
     packId,
@@ -36,6 +38,11 @@ export function useCheckout(
     setPaid,
   } = state;
 
+  const goResult = (orderId: string) => {
+    const q = orderId ? `?session=${encodeURIComponent(orderId)}` : "";
+    router.push(`/result${q}`);
+  };
+
   const checkout = async () => {
     if (!selfie) {
       fail("checkout", "셀카를 먼저 업로드해 주세요.");
@@ -44,7 +51,6 @@ export function useCheckout(
     clearFail();
     setPaying(true);
     try {
-      // 새 주문 — 이전 결제 복원 세션은 치움
       try {
         const { clearRestorePaid } = await import("@/lib/sessionHeavy");
         await clearRestorePaid(RESTORE_PAID_KEY);
@@ -57,7 +63,6 @@ export function useCheckout(
         body: JSON.stringify({
           purposeId,
           packId,
-          // pay-first: 미리보기 자산 없이 주문 (있으면 호환으로만 전달)
           previewAssetId,
           previewVault,
           partnerCode: partnerCode || undefined,
@@ -131,6 +136,35 @@ export function useCheckout(
         setLayoutFreeUsed(paidData.layoutPaidSizeIds.length > 0);
       }
       setPaid(true);
+      try {
+        const { persistRestorePaid } = await import("@/lib/sessionHeavy");
+        await persistRestorePaid(RESTORE_PAID_KEY, {
+          v: 2,
+          paid: true,
+          orderId: String(data.orderId || paidData.orderId || ""),
+          unlockToken: paidData.unlockToken as string,
+          orderTicket: (data.orderTicket as string) || paidData.unlockToken,
+          amountKrw: paidData.amountKrw ?? data.amountKrw,
+          packId: (paidData.packId as PackId) || packId,
+          includeLayout: (paidData.packId || packId) === "plus",
+          layoutPaidSizeIds: Array.isArray(paidData.layoutPaidSizeIds)
+            ? paidData.layoutPaidSizeIds.map(String)
+            : [],
+          redoUsed: paidData.redoUsed ?? 0,
+          asvUsed: paidData.asvUsed ?? 0,
+          purposeId,
+          previewAssetId,
+          previewVault,
+          shots,
+          selectedShotId,
+          subjectLook,
+          subjectSeason,
+          selfie,
+        });
+      } catch {
+        /* ignore — /result restore best-effort */
+      }
+      goResult(String(data.orderId || paidData.orderId || ""));
     } catch (e) {
       fail(
         "checkout",

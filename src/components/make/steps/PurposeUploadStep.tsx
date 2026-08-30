@@ -32,7 +32,7 @@ type PurposeUploadStepProps = {
   errorAt: string | null;
 };
 
-/** 1~3만. 팩·결제·첫컷 버튼은 MakeStudio에서 결제창 다음에 둠. */
+/** 용도 · 분위기 · 셀카. 팩·결제는 MakeStudio에서. */
 export default function PurposeUploadStep({
   purposeId,
   setPurposeId,
@@ -55,7 +55,7 @@ export default function PurposeUploadStep({
   return (
     <>
       <div>
-        <h2 className="text-sm font-semibold text-ink-700">1. 용도</h2>
+        <h2 className="text-sm font-semibold text-ink-700">용도를 골라 주세요</h2>
         <div className="mt-3 grid gap-2 sm:grid-cols-3">
           {PURPOSES.map((p) => (
             <button
@@ -78,7 +78,7 @@ export default function PurposeUploadStep({
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold text-ink-700">2. 사진 속 분은요</h2>
+        <h2 className="text-sm font-semibold text-ink-700">사진 속 분위기를 맞춰 주세요</h2>
         <p className="mt-1 text-xs text-ink-400">
           잘 맞춰 주시면 옷·분위기가 어긋나지 않아요. 잘 모르겠으면 「사진 그대로」로 두세요.
         </p>
@@ -131,7 +131,10 @@ export default function PurposeUploadStep({
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold text-ink-700">3. 셀카 업로드</h2>
+        <h2 className="text-sm font-semibold text-ink-700">셀카를 올려 주세요</h2>
+        <div className="mt-3">
+          <ShootTips compact />
+        </div>
         <div
           className="mt-3 cursor-pointer rounded-2xl border border-dashed border-ink-300 bg-white/70 p-8 text-center"
           onClick={() => inputRef.current?.click()}
@@ -160,9 +163,6 @@ export default function PurposeUploadStep({
           />
         </div>
         <InlineError at="upload" errorAt={errorAt} message={error} />
-        <div className="mt-3">
-          <ShootTips compact />
-        </div>
       </div>
     </>
   );

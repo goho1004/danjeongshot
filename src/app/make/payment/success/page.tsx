@@ -72,8 +72,9 @@ function PaymentSuccessInner() {
         };
         await persistRestorePaid("djs_restore_paid", restore);
         sessionStorage.removeItem(SESSION_KEY);
-        setMsg("결제되었습니다. 만들기 화면으로 돌아갈게요.");
-        router.replace("/make?paid=1");
+        setMsg("결제되었습니다. 결과 화면으로 이동할게요.");
+        const sid = encodeURIComponent(String(data.orderId || orderId));
+        router.replace(`/result?session=${sid}`);
       } catch {
         setErr("결제 확인 중 오류가 발생했습니다.");
       }

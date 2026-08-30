@@ -12,7 +12,7 @@ type FirstCutButtonProps = {
   loadingIdx: number;
 };
 
-/** 결제창 아래 — 결제 전에는 초록 버튼만 비활성 */
+/** /result — 결제 후 생성 시작 */
 export default function FirstCutButton({
   paid,
   selfie,
@@ -33,14 +33,9 @@ export default function FirstCutButton({
         onClick={generate}
         className="w-full rounded-xl bg-accent py-3.5 text-sm font-semibold text-white disabled:opacity-40"
       >
-        {busyKind === "preview" ? "첫 컷 만드는 중…" : "4. 첫 컷 보기"}
+        {busyKind === "preview" ? "생성 중…" : "컷 만들기"}
       </button>
       <InlineError at="generate" errorAt={errorAt} message={error} />
-      {!paid && (
-        <p className="mt-2 text-center text-[11px] text-ink-400">
-          위에서 팩을 고르고 결제하면 이 버튼이 열려요.
-        </p>
-      )}
       {paid && !selfie && (
         <p className="mt-2 text-center text-[11px] text-ink-400">셀카를 먼저 올려 주세요.</p>
       )}

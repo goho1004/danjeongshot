@@ -17,7 +17,7 @@ export default function HeroWithSlider() {
       <div className="relative mx-auto grid min-h-[calc(100svh-4rem)] max-w-6xl items-center gap-10 px-5 pb-16 pt-10 md:grid-cols-2 md:gap-14 md:px-8 md:pb-24 md:pt-14">
         <div>
           <p className="animate-rise text-sm font-medium tracking-wide text-studio-deep">
-            {BRAND.beta} · {BRAND.speed} · 마감 전에 쓰는 단정 프사
+            {BRAND.speed} · 마감 전에 쓰는 단정 프사
           </p>
           <h1 className="animate-rise-2 mt-4 font-display text-[2.2rem] leading-[1.1] tracking-tight text-ink-950 sm:text-[2.6rem] md:text-5xl md:leading-[1.08]">
             <span className="block text-studio">{BRAND.sign}</span>
@@ -59,9 +59,6 @@ export default function HeroWithSlider() {
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-xs leading-relaxed text-ink-400">
-            여권·민원 제출용 사진이 아닙니다. 민간 서류·프로필 전용.
-          </p>
         </div>
 
         <div className="animate-rise-3 mx-auto w-full max-w-[380px] md:max-w-none">
