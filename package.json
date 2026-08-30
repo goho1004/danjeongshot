@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@google/genai": "^2.12.0",
+    "@portone/browser-sdk": "^0.1.9",
     "@tosspayments/tosspayments-sdk": "^2.7.1",
     "next": "14.2.35",
     "react": "^18",

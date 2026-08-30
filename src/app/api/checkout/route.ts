@@ -89,7 +89,9 @@ export async function POST(req: NextRequest) {
     notice:
       mode === "toss"
         ? `${pack.name} ₩${amountKrw.toLocaleString("ko-KR")} · 토스페이먼츠 결제 · 받은 뒤 환불 어려움`
-        : `${pack.name} ₩${amountKrw.toLocaleString("ko-KR")} · 여권·관공서 제출용 아님 · 받은 뒤 환불 어려움 · 샌드박스 결제`,
+        : mode === "portone"
+          ? `${pack.name} ₩${amountKrw.toLocaleString("ko-KR")} · 카카오페이(포트원) · 받은 뒤 환불 어려움`
+          : `${pack.name} ₩${amountKrw.toLocaleString("ko-KR")} · 여권·관공서 제출용 아님 · 받은 뒤 환불 어려움 · 샌드박스 결제`,
     partnerIgnored: partnerRaw && !agent ? partnerRaw : null,
   });
 }

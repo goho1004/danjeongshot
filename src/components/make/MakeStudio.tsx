@@ -220,7 +220,11 @@ export default function MakeStudio({ variant = "make" }: { variant?: MakeStudioV
           errorAt={state.errorAt}
           hasSelfie={!!state.selfie}
           paymentMode={
-            process.env.NEXT_PUBLIC_PAYMENT_MODE === "toss" ? "toss" : "sandbox"
+            process.env.NEXT_PUBLIC_PAYMENT_MODE === "toss"
+              ? "toss"
+              : process.env.NEXT_PUBLIC_PAYMENT_MODE === "portone"
+                ? "portone"
+                : "sandbox"
           }
         />
       </div>

@@ -19,8 +19,8 @@ type CheckoutStepProps = {
   error: string | null;
   errorAt: string | null;
   hasSelfie: boolean;
-  /** sandbox = 로컬/테스트 결제 시뮬레이션 (UI에 베타 표기 ✗) */
-  paymentMode?: "sandbox" | "toss";
+  /** sandbox | toss | portone */
+  paymentMode?: "sandbox" | "toss" | "portone";
 };
 
 export default function CheckoutStep({
@@ -39,7 +39,7 @@ export default function CheckoutStep({
   hasSelfie,
   paymentMode = "sandbox",
 }: CheckoutStepProps) {
-  const sandbox = paymentMode !== "toss";
+  const sandbox = paymentMode !== "toss" && paymentMode !== "portone";
 
   return (
     <div className="rounded-2xl border border-accent/25 bg-white/90 p-5 shadow-sm">
@@ -72,7 +72,13 @@ export default function CheckoutStep({
         disabled={paying || !!busyKind || !hasSelfie}
         className="mt-4 w-full rounded-xl bg-ink-950 py-3.5 text-sm font-semibold text-white disabled:opacity-50"
       >
-        {paying ? "결제 처리 중…" : !hasSelfie ? "셀카를 올린 뒤 결제" : "결제하기"}
+        {paying
+          ? "결제 처리 중…"
+          : !hasSelfie
+            ? "셀카를 올린 뒤 결제"
+            : paymentMode === "portone"
+              ? "카카오페이로 결제"
+              : "결제하기"}
       </button>
       {sandbox ? (
         <p className="mt-2 text-center text-[10px] text-ink-300">테스트 결제 모드</p>

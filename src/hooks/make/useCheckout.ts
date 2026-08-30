@@ -114,6 +114,23 @@ export function useCheckout(
         return;
       }
 
+      if (data.mode === "portone") {
+        const { requestKakaoPayment } = await import("@/lib/payment");
+        const portoneRes = await requestKakaoPayment({
+          orderId: String(data.orderId),
+          orderName: String(data.orderName || "증명사진 -단정-"),
+          amount: Number(data.amountKrw),
+        });
+        if (portoneRes && "code" in portoneRes && portoneRes.code != null) {
+          fail(
+            "checkout",
+            (portoneRes as { message?: string }).message || "카카오페이 결제가 취소되었거나 실패했습니다."
+          );
+          return;
+        }
+        // 브라우저 결제 성공 → 기존 complete로 unlock 발급 (서버 포트원 웹훅은 후속)
+      }
+
       const pay = await fetch("/api/checkout/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
