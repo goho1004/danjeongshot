@@ -2,15 +2,15 @@
  * 토스페이먼츠 — 테스트/라이브 키로 승인.
  * PAYMENT_MODE=sandbox → 키 없이 즉시 결제 완료
  * PAYMENT_MODE=toss → 클라이언트 결제창 + 서버 confirm
- * PAYMENT_MODE=portone → 포트원 카카오페이 (브라우저 SDK) + complete
+ * PAYMENT_MODE=portone → 포트원 토스페이먼츠 채널 (브라우저 SDK) + complete
  */
 
 export type PaymentMode = "sandbox" | "toss" | "portone";
 
 function portoneKeysReady(): boolean {
   const store = process.env.NEXT_PUBLIC_PORTONE_STORE_ID?.trim() || "";
-  const ch = process.env.NEXT_PUBLIC_PORTONE_KAKAO_CHANNEL_KEY?.trim() || "";
-  return Boolean(store && ch && !store.includes("xxxxxxxx") && !ch.includes("xxxxxxxx"));
+  const toss = process.env.NEXT_PUBLIC_PORTONE_TOSS_CHANNEL_KEY?.trim() || "";
+  return Boolean(store && toss && !store.includes("xxxxxxxx") && !toss.includes("xxxxxxxx"));
 }
 
 export function getPaymentMode(): PaymentMode {

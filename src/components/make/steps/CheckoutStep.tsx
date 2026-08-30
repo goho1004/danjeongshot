@@ -77,7 +77,7 @@ export default function CheckoutStep({
           : !hasSelfie
             ? "셀카를 올린 뒤 결제"
             : paymentMode === "portone"
-              ? "카카오페이로 결제"
+              ? "결제하기"
               : "결제하기"}
       </button>
       {sandbox ? (

@@ -115,8 +115,8 @@ export function useCheckout(
       }
 
       if (data.mode === "portone") {
-        const { requestKakaoPayment } = await import("@/lib/payment");
-        const portoneRes = await requestKakaoPayment({
+        const { requestPayment } = await import("@/lib/payment");
+        const portoneRes = await requestPayment({
           orderId: String(data.orderId),
           orderName: String(data.orderName || "증명사진 -단정-"),
           amount: Number(data.amountKrw),
@@ -124,7 +124,8 @@ export function useCheckout(
         if (portoneRes && "code" in portoneRes && portoneRes.code != null) {
           fail(
             "checkout",
-            (portoneRes as { message?: string }).message || "카카오페이 결제가 취소되었거나 실패했습니다."
+            (portoneRes as { message?: string }).message ||
+              "결제가 취소되었거나 실패했습니다."
           );
           return;
         }
