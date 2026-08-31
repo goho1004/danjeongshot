@@ -119,6 +119,20 @@ export async function persistCheckoutSession(
   sessionStorage.setItem(sessionKey, JSON.stringify(slim));
 }
 
+/** /make 새 진입 시 stale checkout 세션 제거 (IDB heavy 포함) */
+export async function clearCheckoutSession(sessionKey: string): Promise<void> {
+  try {
+    const raw = sessionStorage.getItem(sessionKey);
+    if (raw) {
+      const slim = JSON.parse(raw) as { heavyKey?: string };
+      if (slim.heavyKey) await idbDel(String(slim.heavyKey));
+    }
+  } catch {
+    /* ignore */
+  }
+  sessionStorage.removeItem(sessionKey);
+}
+
 export async function loadCheckoutSession(sessionKey: string): Promise<{
   orderId: string;
   orderTicket: string;

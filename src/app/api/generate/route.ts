@@ -23,6 +23,7 @@ import {
   putOrder,
   resolveOrder,
 } from "@/lib/orders";
+import { resolvePaidOrder } from "@/lib/orderPaid";
 import {
   bindPreviewToOrder,
   replaceCleanAsset,
@@ -140,7 +141,7 @@ export async function POST(req: NextRequest) {
 
     // pay-first: 무료 미리보기 생성 금지 — 결제된 주문만 첫 컷/재생성
     if (stage === "preview") {
-      const order = resolveOrder(orderId, unlockToken);
+      const order = await resolvePaidOrder(orderId, unlockToken);
       if (!order?.paid) {
         return NextResponse.json(
           {

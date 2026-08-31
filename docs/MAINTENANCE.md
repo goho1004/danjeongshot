@@ -34,6 +34,7 @@ npm run maint:flow-e2e
 | `maint:safari-multipart` | iOS UA multipart 다운로드 200 |
 | `maint:flow-e2e` | Playwright UI: 받기→저장→레이아웃 |
 | `maint:smoke` | generate→checkout→complete→download |
+| `maint:payment-integrity` | 결제 전 generate 차단 · token 갱신 · stale flush 시뮬 |
 | `maint:check-debug` | 디버그 계측 잔여 0건 |
 
 프로덕션 검증 시:
@@ -57,7 +58,7 @@ npm run maint:gate -- --base https://danjeongshot.vercel.app
 | `TOSS_SECRET_KEY` | 토스 시크릿 (서버만) |
 | `NEXT_PUBLIC_SITE_URL` | 사이트 URL |
 | `PREVIEW_QUOTA_SECRET` | vault/주문 서명 (인스턴스 간 동일해야 함) |
-| `MAINT_SMOKE_SECRET` | maint gate용 — `x-djs-maint-smoke` 헤더와 일치 시 generate 한도 생략 |
+| `MAINT_SMOKE_SECRET` | maint gate용 — `x-djs-maint-smoke` 헤더와 일치 시 generate 한도·toss confirm 생략 |
 | `NEXT_PUBLIC_BIZ_*` | 푸터 사업자·부가세 표기 |
 
 **필수:** Vercel에 `PREVIEW_QUOTA_SECRET`(또는 고정 `GEMINI_API_KEY`)를 **전 환경 동일**하게. 키가 바뀌면 vault unseal 실패 → 다운로드 410.

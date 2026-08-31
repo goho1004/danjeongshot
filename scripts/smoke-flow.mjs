@@ -1,13 +1,21 @@
 /**
  * 스모크: checkout → complete → generate → download (pay-first)
+ * toss prod: MAINT_SMOKE_SECRET + x-djs-maint-smoke 필요
  * 사용: node scripts/smoke-flow.mjs
  */
 import { uniqueDeviceId, uniqueSmokePngDataUrl } from "./lib/smokePng.mjs";
 
 const BASE = process.env.SMOKE_BASE || "http://127.0.0.1:3000";
 
+function maintHeaders() {
+  const secret = process.env.MAINT_SMOKE_SECRET?.trim();
+  if (!secret) return {};
+  return { "x-djs-maint-smoke": secret };
+}
+
 async function main() {
   const imageBase64 = await uniqueSmokePngDataUrl();
+  const maint = maintHeaders();
 
   const co = await fetch(`${BASE}/api/checkout`, {
     method: "POST",
@@ -20,7 +28,7 @@ async function main() {
 
   const pay = await fetch(`${BASE}/api/checkout/complete`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...maint },
     body: JSON.stringify({ orderId: c.orderId, orderTicket: c.orderTicket }),
   });
   const p = await pay.json();
@@ -33,6 +41,7 @@ async function main() {
     headers: {
       "Content-Type": "application/json",
       "x-djs-device": uniqueDeviceId("smoke_device"),
+      ...maint,
     },
     body: JSON.stringify({
       stage: "preview",

@@ -4,10 +4,25 @@ import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
+function failHint(code: string | null): string {
+  if (code === "PAY_PROCESS_CANCELED") {
+    return "결제를 취소하셨습니다. 다시 시도해 주세요.";
+  }
+  if (code === "PAY_PROCESS_ABORTED") {
+    return "결제 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+  }
+  if (code === "REJECT_CARD_COMPANY") {
+    return "카드사에서 결제를 거절했습니다. 다른 카드로 시도해 주세요.";
+  }
+  return "";
+}
+
 function PaymentFailInner() {
   const params = useSearchParams();
   const code = params.get("code");
-  const message = params.get("message") || "결제가 취소되었거나 실패했습니다.";
+  const hint = failHint(code);
+  const message =
+    hint || params.get("message") || "결제가 취소되었거나 실패했습니다.";
 
   return (
     <div className="mx-auto max-w-md px-5 py-20 text-center">

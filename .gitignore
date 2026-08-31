@@ -17,3 +17,8 @@ data/agents.json
 
 .tmp/
 tmp/
+
+# local debug screenshots
+.tmp-*.png
+.tmp-*.jpg
+.tmp-selfie.*

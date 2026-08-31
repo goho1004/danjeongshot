@@ -9,6 +9,7 @@ import { runWatermark } from "./checks/watermark.mjs";
 import { runSafariMultipart } from "./checks/safari-multipart.mjs";
 
 import { runDebugArtifacts } from "./checks/debug-artifacts.mjs";
+import { runPaymentIntegrity } from "./checks/payment-integrity.mjs";
 
 import { createPaidSession } from "./checks/prepPaid.mjs";
 
@@ -58,9 +59,13 @@ export async function runGate(base, { includeDebug = false } = {}) {
 
   const sessionJson = JSON.stringify(session);
 
+  const integrity = await runPaymentIntegrity(base);
+
   const checks = [
 
     prepCheck,
+
+    integrity,
 
     await runHealth(base),
 

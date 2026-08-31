@@ -25,7 +25,10 @@ export async function createPaidSession(base) {
 
   const pay = await fetch(`${base}/api/checkout/complete`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...maintHeaders(),
+    },
     body: JSON.stringify({ orderId: c.orderId, orderTicket: c.orderTicket }),
   });
   const p = await pay.json();

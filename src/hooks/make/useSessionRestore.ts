@@ -15,17 +15,19 @@ function resolveRestoredPackId(data: RestorePaidData): PackId | null {
 
 type SessionRestoreExtras = {
   setLayoutSavedOnce?: (v: boolean) => void;
+  /** false = 새 주문 (/make). true = 이어하기·결과 (/make?resume=1, /result) */
+  enabled?: boolean;
 };
 
 /**
- * /make 진입 시 저장된 결제·컷 세션 복원.
- * ?paid=1(토스 복귀)뿐 아니라 /help · /print · 갤러리 등에서 돌아올 때도 동작.
- * 키는 지우지 않음 — 새 결제 시작 시에만 clear.
+ * 저장된 결제·컷 세션 복원.
+ * `/make` (resume 없음) = 복원 안 함 · `/make?resume=1` · `/result` = 복원.
  */
 export function useSessionRestore(
   state: MakeStudioState,
   extras?: SessionRestoreExtras
 ) {
+  const enabled = extras?.enabled ?? true;
   const {
     restoredOnce,
     setRestoredOnce,
@@ -55,6 +57,10 @@ export function useSessionRestore(
 
   useEffect(() => {
     if (restoredOnce || typeof window === "undefined") return;
+    if (!enabled) {
+      setRestoredOnce(true);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -132,5 +138,5 @@ export function useSessionRestore(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount once until restoredOnce
-  }, [restoredOnce]);
+  }, [restoredOnce, enabled]);
 }

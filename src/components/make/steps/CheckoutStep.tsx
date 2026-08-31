@@ -19,8 +19,11 @@ type CheckoutStepProps = {
   error: string | null;
   errorAt: string | null;
   hasSelfie: boolean;
-  /** sandbox | toss | portone */
-  paymentMode?: "sandbox" | "toss" | "portone";
+  /** sandbox | toss */
+  paymentMode?: "sandbox" | "toss";
+  /** 주문서형 결제 UI 준비 여부 */
+  tossWidgetsReady?: boolean;
+  tossWidgetsError?: string | null;
 };
 
 export default function CheckoutStep({
@@ -38,8 +41,15 @@ export default function CheckoutStep({
   errorAt,
   hasSelfie,
   paymentMode = "sandbox",
+  tossWidgetsReady = false,
+  tossWidgetsError = null,
 }: CheckoutStepProps) {
-  const sandbox = paymentMode !== "toss" && paymentMode !== "portone";
+  const toss = paymentMode === "toss";
+  const payDisabled =
+    paying ||
+    !!busyKind ||
+    !hasSelfie ||
+    (toss && (!tossWidgetsReady || !!tossWidgetsError));
 
   return (
     <div className="rounded-2xl border border-accent/25 bg-white/90 p-5 shadow-sm">
@@ -66,23 +76,53 @@ export default function CheckoutStep({
         </strong>
         에만 검토하고, 품질은 받기 전 다시 만들기·A/S로 안내합니다. 배송은 없습니다.
       </p>
+
+      {toss ? (
+        <div className="mt-4 space-y-3">
+          <div
+            id="djs-toss-methods"
+            className="min-h-[120px] rounded-xl border border-ink-100 bg-white p-2"
+          />
+          <div
+            id="djs-toss-agreement"
+            className="rounded-xl border border-ink-100 bg-white p-2"
+          />
+          {!tossWidgetsReady && !tossWidgetsError ? (
+            <p className="text-center text-[11px] text-ink-400">결제수단 불러오는 중…</p>
+          ) : null}
+          {tossWidgetsError ? (
+            <div className="space-y-1 text-center" role="alert">
+              <p className="text-[11px] text-red-600">{tossWidgetsError}</p>
+              <p className="text-[10px] text-ink-400">
+                키가 거부되면(UNAUTHORIZED) 개발자센터의 주문서형·결제창형 테스트 키를 확인하세요.
+                광고차단이 있으면 시크릿 창을 써 보세요.
+              </p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <button
         type="button"
         onClick={checkout}
-        disabled={paying || !!busyKind || !hasSelfie}
+        disabled={payDisabled}
         className="mt-4 w-full rounded-xl bg-ink-950 py-3.5 text-sm font-semibold text-white disabled:opacity-50"
       >
         {paying
           ? "결제 처리 중…"
           : !hasSelfie
             ? "셀카를 올린 뒤 결제"
-            : paymentMode === "portone"
-              ? "결제하기"
+            : toss && !tossWidgetsReady
+              ? "결제수단 준비 중…"
               : "결제하기"}
       </button>
-      {sandbox ? (
+      {!toss ? (
         <p className="mt-2 text-center text-[10px] text-ink-300">테스트 결제 모드</p>
-      ) : null}
+      ) : (
+        <p className="mt-2 text-center text-[10px] leading-relaxed text-ink-400">
+          위에서 결제수단을 선택한 뒤 결제하기를 눌러 주세요.
+        </p>
+      )}
       <InlineError at="checkout" errorAt={errorAt} message={error} />
     </div>
   );

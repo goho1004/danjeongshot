@@ -12,6 +12,7 @@ import { useSessionRestore } from "@/hooks/make/useSessionRestore";
 import { usePersistPaidSession } from "@/hooks/make/usePersistPaidSession";
 import { useGenerate } from "@/hooks/make/useGenerate";
 import { useCheckout } from "@/hooks/make/useCheckout";
+import { useTossOrderWidgets } from "@/hooks/make/useTossOrderWidgets";
 import { useDownload } from "@/hooks/make/useDownload";
 import { useLayoutDownload } from "@/hooks/make/useLayoutDownload";
 import { resolveMakeFlowStep } from "@/lib/flow/makeFlow";
@@ -25,6 +26,7 @@ import {
   TRUST_CHIPS,
   type PurposeId,
 } from "@/lib/purposes";
+import { CHECKOUT_SESSION_KEY } from "@/lib/make/types";
 
 export type MakeStudioVariant = "make" | "result";
 
@@ -36,8 +38,22 @@ export default function MakeStudio({ variant = "make" }: { variant?: MakeStudioV
 
   const state = useMakeStudioState(initialPurpose);
   const [layoutSavedOnce, setLayoutSavedOnce] = useState(false);
-  useSessionRestore(state, { setLayoutSavedOnce });
+
+  const resumeSession =
+    variant === "result" ||
+    params.get("resume") === "1" ||
+    params.get("resume") === "true";
+
+  useSessionRestore(state, { setLayoutSavedOnce, enabled: resumeSession });
   usePersistPaidSession(state, { layoutSavedOnce });
+
+  // /make 새 진입(resume 아님): stale checkout 세션 클리어
+  useEffect(() => {
+    if (variant !== "make" || resumeSession) return;
+    void import("@/lib/sessionHeavy").then(({ clearCheckoutSession }) =>
+      clearCheckoutSession(CHECKOUT_SESSION_KEY)
+    );
+  }, [variant, resumeSession]);
 
   useEffect(() => {
     const raw =
@@ -65,13 +81,14 @@ export default function MakeStudio({ variant = "make" }: { variant?: MakeStudioV
     }
   }, [state.partnerCode, state.setPartnerCode]);
 
-  // /make 에서 이미 결제된 세션이면 /result 로 보냄
+  // /make?resume=1 — 저장된 결제 세션 이어하기 → /result
   useEffect(() => {
     if (variant !== "make") return;
+    if (!resumeSession) return;
     if (!state.paid) return;
     const sid = state.orderId ? `?session=${encodeURIComponent(state.orderId)}` : "";
     router.replace(`/result${sid}`);
-  }, [variant, state.paid, state.orderId, router]);
+  }, [variant, resumeSession, state.paid, state.orderId, router]);
 
   const deviceFp = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -91,12 +108,23 @@ export default function MakeStudio({ variant = "make" }: { variant?: MakeStudioV
     state.subjectLook,
     state.subjectSeason
   );
+  const tossMode = process.env.NEXT_PUBLIC_PAYMENT_MODE === "toss";
+  const {
+    ready: tossWidgetsReady,
+    mountError: tossWidgetsError,
+    requestPayment: tossRequestPayment,
+  } = useTossOrderWidgets({
+    enabled: variant === "make" && tossMode && !!state.selfie,
+    amountKrw: state.amount,
+    customerKey: deviceFp || "guest_anon",
+  });
   const { checkout } = useCheckout(
     state,
     deviceFp,
     state.purposeId,
     state.subjectLook,
-    state.subjectSeason
+    state.subjectSeason,
+    tossMode ? tossRequestPayment : undefined
   );
   const { download, saveReadyFile, downloadExtra, deliverCleanByEmail } = useDownload(
     state,
@@ -219,13 +247,9 @@ export default function MakeStudio({ variant = "make" }: { variant?: MakeStudioV
           error={state.error}
           errorAt={state.errorAt}
           hasSelfie={!!state.selfie}
-          paymentMode={
-            process.env.NEXT_PUBLIC_PAYMENT_MODE === "toss"
-              ? "toss"
-              : process.env.NEXT_PUBLIC_PAYMENT_MODE === "portone"
-                ? "portone"
-                : "sandbox"
-          }
+          paymentMode={tossMode ? "toss" : "sandbox"}
+          tossWidgetsReady={tossWidgetsReady}
+          tossWidgetsError={tossWidgetsError}
         />
       </div>
     );

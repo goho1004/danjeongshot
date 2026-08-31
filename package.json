@@ -16,6 +16,7 @@
     "maint:check-debug": "node scripts/maint/index.mjs check-debug",
     "maint:watermark": "node scripts/maint/index.mjs watermark",
     "maint:flow-e2e": "node scripts/maint/index.mjs flow-e2e",
+    "maint:payment-integrity": "node scripts/maint/index.mjs payment-integrity",
     "maint:safari-multipart": "node scripts/maint/index.mjs safari-multipart",
     "maint:gate": "node scripts/maint/index.mjs gate",
     "maint:loop": "node scripts/maint/index.mjs loop",
@@ -26,7 +27,6 @@
   },
   "dependencies": {
     "@google/genai": "^2.12.0",
-    "@portone/browser-sdk": "^0.1.9",
     "@tosspayments/tosspayments-sdk": "^2.7.1",
     "next": "14.2.35",
     "react": "^18",

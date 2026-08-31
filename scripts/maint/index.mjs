@@ -13,6 +13,7 @@ import { runSafariMultipart } from "./checks/safari-multipart.mjs";
 import { runDebugArtifacts } from "./checks/debug-artifacts.mjs";
 import { runGate } from "./gate.mjs";
 import { createPaidSession } from "./checks/prepPaid.mjs";
+import { runPaymentIntegrity } from "./checks/payment-integrity.mjs";
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const root = join(__dir, "..");
@@ -80,7 +81,8 @@ Commands:
   watermark         미리보기 워터마크 검증
   safari-multipart  iOS multipart 다운로드
   flow-e2e          Playwright UI 시퀀스
-  gate              health+download+watermark+safari+e2e
+  gate              health+payment-integrity+download+watermark+safari+e2e
+  payment-integrity 결제 토큰·stale 세션 시뮬레이션
   loop              gate (exit 1 on fail)
   env-check         로컬 .env
   check-debug       디버그 계측 잔여
@@ -123,6 +125,11 @@ const map = {
   "flow-e2e": () => {
     const r = runFlowE2e(BASE);
     console.log(r.output || JSON.stringify(r));
+    return r.ok ? 0 : 1;
+  },
+  "payment-integrity": async () => {
+    const r = await runPaymentIntegrity(BASE);
+    console.log(JSON.stringify(r, null, 2));
     return r.ok ? 0 : 1;
   },
   gate: async () => {
