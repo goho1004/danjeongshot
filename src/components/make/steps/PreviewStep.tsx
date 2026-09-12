@@ -2,6 +2,7 @@ import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 import WatermarkFrame from "@/components/WatermarkFrame";
 import type { Shot } from "@/lib/make/types";
 import { EASTER_UPSELL } from "@/lib/easterEgg";
+import { smoothScrollToRegenTarget } from "@/lib/smoothScroll";
 
 type PreviewStepProps = {
   shots: Shot[];
@@ -41,7 +42,7 @@ export default function PreviewStep({
         {mock ? " · MOCK" : ""}
       </p>
       {hasEaster && (
-        <p className="mt-2 text-xs text-ink-600">{EASTER_UPSELL}</p>
+        <p className="mt-2 text-[10px] text-ink-400">{EASTER_UPSELL}</p>
       )}
 
       {canCompare && selfie && afterSrc && (
@@ -99,6 +100,14 @@ export default function PreviewStep({
           );
         })}
       </div>
+
+      <button
+        type="button"
+        onClick={() => smoothScrollToRegenTarget("start")}
+        className="mt-4 w-full rounded-xl bg-ink-950 py-3 text-sm font-semibold text-white sm:mx-auto sm:block sm:w-auto sm:px-8"
+      >
+        다음: 저장 ↓
+      </button>
     </div>
   );
 }

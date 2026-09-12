@@ -368,7 +368,10 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
         : "저장";
 
   return (
-    <div className="rounded-2xl border border-accent/30 bg-accent-soft/40 p-5 space-y-4 overflow-hidden">
+    <div
+      id="djs-result-hero"
+      className="rounded-2xl border border-accent/30 bg-accent-soft/40 p-5 space-y-4 overflow-hidden"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-accent-deep">받기</p>
@@ -424,7 +427,7 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
       {awaitingPhoto && (
         <>
           {shots.length > 1 && (
-            <div className="space-y-2">
+            <div id="djs-result-shots" className="space-y-2 scroll-mt-4">
               <p className="text-[11px] font-semibold tracking-wide text-studio">
                 받을 컷 고르기 · {shots.length}장
               </p>
@@ -541,9 +544,18 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
         </div>
       )}
 
-      {/* Secondary — basic·plus 동일 (인화 포함만 plus 차이) */}
-      <div className="space-y-4 border-t border-accent/15 pt-4">
-          {savedOnce && primaryShotId && (
+      {/* Secondary — 저장 전엔 아무 것도 노출하지 않음(한 번 저장한 뒤에만 접힌 「다른 방법」) */}
+      {savedOnce && (
+        <div className="space-y-3 border-t border-accent/15 pt-4">
+          <details className="rounded-xl border border-ink-100 bg-white px-3 py-3">
+            <summary className="cursor-pointer text-xs font-semibold text-ink-800">
+              다른 방법{" "}
+              <span className="ml-1 text-[11px] font-normal text-ink-400">
+                더 받기 · 이메일 · 다시 만들기
+              </span>
+            </summary>
+            <div className="mt-3 space-y-4">
+          {primaryShotId && (
             <section
               className="rounded-xl border border-ink-200 bg-white px-3 py-3 space-y-3 overflow-hidden"
               aria-label="추가구성"
@@ -754,10 +766,10 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
 
           <section
             className="rounded-xl border border-ink-100 bg-white px-3 py-3 space-y-3"
-            aria-label="다른 방법"
+            aria-label="이메일"
           >
             <div>
-              <p className="text-xs font-semibold text-ink-800">다른 방법</p>
+              <p className="text-xs font-semibold text-ink-800">이메일로 받기</p>
               <p className="mt-0.5 text-[11px] text-ink-500">
                 공유 창이 안 열리면 이메일·파일로 받으세요.
               </p>
@@ -813,6 +825,8 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
               setExtraCustom={setExtraCustom}
             />
           </section>
+            </div>
+          </details>
 
           <p className="text-[11px] text-ink-400">
             받은 뒤에는{" "}
@@ -822,6 +836,7 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
             .
           </p>
         </div>
+      )}
 
       <DownloadPreviewModal
         open={!!modal}

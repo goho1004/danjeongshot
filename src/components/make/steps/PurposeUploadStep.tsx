@@ -78,59 +78,6 @@ export default function PurposeUploadStep({
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold text-ink-700">사진 속 분위기를 맞춰 주세요</h2>
-        <p className="mt-1 text-xs text-ink-400">
-          잘 맞춰 주시면 옷·분위기가 어긋나지 않아요. 잘 모르겠으면 「사진 그대로」로 두세요.
-        </p>
-        <p className="mt-3 text-xs font-medium text-ink-600">모습</p>
-        <div className="mt-2 grid gap-2 sm:grid-cols-3">
-          {SUBJECT_LOOKS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setSubjectLook(opt.id as SubjectLookId)}
-              className={`rounded-xl border px-3 py-2.5 text-left transition ${
-                subjectLook === opt.id
-                  ? "border-accent bg-accent-soft/60"
-                  : "border-ink-100 bg-white/80"
-              }`}
-            >
-              <span className="block text-sm font-semibold text-ink-900">{opt.label}</span>
-              <span className="mt-0.5 block text-[11px] text-ink-400">{opt.hint}</span>
-            </button>
-          ))}
-        </div>
-        <p className="mt-4 text-xs font-medium text-ink-600">나이(연령)</p>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          {SUBJECT_SEASONS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setSubjectSeason(opt.id as SubjectSeasonId)}
-              className={`rounded-xl border px-3 py-2.5 text-left transition ${
-                subjectSeason === opt.id
-                  ? "border-accent bg-accent-soft/60"
-                  : "border-ink-100 bg-white/80"
-              }`}
-            >
-              <span className="block text-sm font-semibold text-ink-900">{opt.label}</span>
-              <span className="mt-0.5 block text-[11px] text-ink-400">{opt.hint}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-5">
-          <ExtraPromptFields
-            subjectLook={subjectLook}
-            extraPresetIds={extraPresetIds}
-            toggleExtraPreset={toggleExtraPreset}
-            extraCustom={extraCustom}
-            setExtraCustom={setExtraCustom}
-          />
-        </div>
-      </div>
-
-      <div>
         <h2 className="text-sm font-semibold text-ink-700">셀카를 올려 주세요</h2>
         <div className="mt-3">
           <ShootTips compact />
@@ -162,8 +109,80 @@ export default function PurposeUploadStep({
             onChange={onFile}
           />
         </div>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <p className="text-[11px] text-ink-300">JPG·PNG·HEIC · 20MB 이하</p>
+          {selfie && (
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="shrink-0 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-ink-700"
+            >
+              다시 올리기
+            </button>
+          )}
+        </div>
         <InlineError at="upload" errorAt={errorAt} message={error} />
       </div>
+
+      <details className="rounded-xl border border-ink-100 bg-white/70 px-4 py-3">
+        <summary className="cursor-pointer text-sm font-semibold text-ink-700">
+          더 맞추기{" "}
+          <span className="ml-1 text-[11px] font-normal text-ink-400">
+            (선택 · 기본값 그대로도 좋아요)
+          </span>
+        </summary>
+        <div className="mt-3">
+          <p className="text-xs text-ink-400">
+            잘 맞춰 주시면 옷·분위기가 어긋나지 않아요. 잘 모르겠으면 「사진 그대로」로 두세요.
+          </p>
+          <p className="mt-3 text-xs font-medium text-ink-600">모습</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-3">
+            {SUBJECT_LOOKS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setSubjectLook(opt.id as SubjectLookId)}
+                className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                  subjectLook === opt.id
+                    ? "border-accent bg-accent-soft/60"
+                    : "border-ink-100 bg-white/80"
+                }`}
+              >
+                <span className="block text-sm font-semibold text-ink-900">{opt.label}</span>
+                <span className="mt-0.5 block text-[11px] text-ink-400">{opt.hint}</span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-4 text-xs font-medium text-ink-600">나이(연령)</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {SUBJECT_SEASONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setSubjectSeason(opt.id as SubjectSeasonId)}
+                className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                  subjectSeason === opt.id
+                    ? "border-accent bg-accent-soft/60"
+                    : "border-ink-100 bg-white/80"
+                }`}
+              >
+                <span className="block text-sm font-semibold text-ink-900">{opt.label}</span>
+                <span className="mt-0.5 block text-[11px] text-ink-400">{opt.hint}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-5">
+            <ExtraPromptFields
+              subjectLook={subjectLook}
+              extraPresetIds={extraPresetIds}
+              toggleExtraPreset={toggleExtraPreset}
+              extraCustom={extraCustom}
+              setExtraCustom={setExtraCustom}
+            />
+          </div>
+        </div>
+      </details>
     </>
   );
 }

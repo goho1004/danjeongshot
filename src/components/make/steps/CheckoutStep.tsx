@@ -60,22 +60,24 @@ export default function CheckoutStep({
       <p className="mt-1 text-xs text-ink-500">
         {packName} · {packTagline}
       </p>
-      <p className="mt-2 text-[11px] leading-relaxed text-ink-400">
-        결제하시면{" "}
-        <Link href="/legal/terms" className="underline hover:text-ink-600" target="_blank">
-          이용약관
-        </Link>
-        과{" "}
-        <Link href="/legal/refund" className="underline hover:text-ink-600" target="_blank">
-          환불 정책
-        </Link>
-        에 동의한 것으로 봅니다. 결제는 컷 생성·제공 의사표시이며,{" "}
-        <strong className="font-medium text-ink-500">생성이 성공하면</strong> 제공이 시작됩니다.{" "}
-        <strong className="font-medium text-ink-500">
-          환불은 시스템 문제로 파일을 전달받지 못한 경우
-        </strong>
-        에만 검토하고, 품질은 받기 전 다시 만들기·A/S로 안내합니다. 배송은 없습니다.
+      <p className="mt-2 text-xs font-semibold text-ink-600">
+        생성이 성공하면 제공이 시작돼요 · 환불은 시스템 결함으로 못 받은 경우만 가능해요.
       </p>
+      <details className="mt-1.5 text-[11px] text-ink-400">
+        <summary className="cursor-pointer underline">약관 자세히</summary>
+        <p className="mt-1.5 leading-relaxed">
+          결제하시면{" "}
+          <Link href="/legal/terms" className="underline hover:text-ink-600" target="_blank">
+            이용약관
+          </Link>
+          과{" "}
+          <Link href="/legal/refund" className="underline hover:text-ink-600" target="_blank">
+            환불 정책
+          </Link>
+          에 동의한 것으로 봅니다. 결제는 컷 생성·제공 의사표시이며, 품질은 받기 전 다시
+          만들기·A/S로 안내합니다. 배송은 없습니다.
+        </p>
+      </details>
 
       {toss ? (
         <div className="mt-4 space-y-3">
