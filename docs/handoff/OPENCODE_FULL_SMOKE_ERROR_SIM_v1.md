@@ -225,6 +225,22 @@ Desktop: **이 파일만** 열고 Muse 1.3.
 
 ---
 
+## 결과 (Cursor 2026-09-13 21:00 KST) — BLOCKER 해소 · GREEN 확정
+
+| 항목 | 결과 |
+|------|------|
+| 조치 | 기존 Upstash 계정 접근 불가(로그인 계정 상이 확인) → **새 Redis DB 생성**(`danjeongshot-genlog`, us-east-1, Free) → Vercel Production+Preview `UPSTASH_REDIS_REST_URL/TOKEN` 전량 교체 → redeploy |
+| generate-log storeOk | **true** (기존 `false`·`lpush:network:ENOTFOUND` 해소) |
+| 추가 발견 1 | Upstash 살아나자 `post-pay-generate-ok` 402 신규 노출 — Redis read-after-write 지연 중 SoT가 stale(paid:false) 레코드를 그대로 신뢰하던 버그. `orderDurable.ts` `resolveOrderDurable`: redis.paid=false인데 **서명된 토큰(AES-GCM, 위조불가)**이 paid:true면 그 토큰을 신뢰하도록 수정 (커밋 `0a76e9e`) |
+| 추가 발견 2 (원인 후보) | 그 결과 `stale-token-blocked`/`session-flush-stale-blocked`가 새로 FAIL — 확인해보니 **원래부터 있던 구멍**: 결제 전(pre-pay) 토큰도 주문이 결제완료되면 재사용해서 `stage=preview`(제미니 3콜) 무제한 재호출 가능했음. Upstash가 죽어있던 동안 우연히 막혀 보였을 뿐. `orderPaid.ts` `resolvePaidOrder`: preview 게이트는 **결제 후 발급된 토큰**만 인정하도록 추가 검증 (커밋 `36cf7f1`) — **이번 세션 처음 질문("체감 스펜드가 높다")의 실제 원인 중 하나로 추정** |
+| maint:gate | **`payment-integrity`: 전 항목 GREEN** (checkout·pre-pay-blocked·complete·token-rotated·post-pay-ok·stale-blocked·session-flush-blocked 7/7) |
+| generate-log entries | n=10+, sums.geminiCalls=30, 전부 `model:"gemini-3.1-flash-lite-image"` · `ok:true` |
+| 남은 FAIL | `flow-e2e`만 (사전 스킵 합의 · UI 카피 셀렉터 불일치, 오늘 이슈와 무관) |
+| diff 파일 | `src/lib/orderDurable.ts`(`0a76e9e`) · `src/lib/orderPaid.ts`(`36cf7f1`) — Upstash 값·키 커밋 ✗ |
+| Redis DB 계정 | 로그인한 GitHub 계정(Personal 워크스페이스)에 새로 생성 — 기존 DB 있던 원계정은 못 찾음(다른 로그인 수단이었을 가능성). 필요시 회장님이 원계정 Upstash 로그인해서 예전 DB 확인·삭제 가능(과금 없는 Free라 방치해도 무해) |
+
+---
+
 ## 참고
 
 - 일상 게이트: `docs/MAINTENANCE.md` §2  
