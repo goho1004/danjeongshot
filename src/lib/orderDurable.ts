@@ -81,7 +81,19 @@ export async function resolveOrderDurable(
   const memOk = !!(mem && mem.unlockToken === token);
   if (!tokenOk && !memOk) return null;
 
-  const redis = await loadOrderById(orderId);
+  let redis = await loadOrderById(orderId);
+  // Upstash Global 복제 지연: 결제 직후 paid:true 토큰인데 Redis가 아직
+  // 구버전(paid:false)을 보여줄 수 있음 — 짧게 재조회(최대 3회, 총 ~600ms)
+  if (redis && !redis.paid && tokenOk && fromToken?.paid) {
+    for (const delayMs of [120, 200, 300]) {
+      await new Promise((r) => setTimeout(r, delayMs));
+      const retry = await loadOrderById(orderId);
+      if (retry?.paid) {
+        redis = retry;
+        break;
+      }
+    }
+  }
   if (redis) {
     // Redis 카운터를 SoT로 — stale 토큰이 redoUsed를 되돌리지 못하게
     return redis;

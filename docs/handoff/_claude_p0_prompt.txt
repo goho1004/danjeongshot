@@ -1,0 +1,18 @@
+단정샷 UX P0 시공. Plan mode ✗. 질문 ✗. 코드 고쳐라.
+
+cwd: D:\Memento\projects\danjeongshot
+발주 전문: docs/handoff/CLAUDE_DANJEONG_UX_P0_v1.md
+설계 나침반: docs/handoff/DANJEONG_UX_FLOW_DESIGN_v1.md 의 §0 HARD만.
+(§3 Step0~7로 스텝 늘리기 ✗)
+
+HARD:
+- 묻지 마. ₩9900/₩14900 → 결제 원클릭.
+- 디폴트=원클릭. 세심=「더 맞추기」접힘만.
+
+P0만:
+1) PurposeUploadStep: look/season/extra → 더맞추기 접힘. 다시올리기+용량안내.
+2) CheckoutStep: 약관 접힘. 팩 후 추가설문 ✗. 결제 CTA 주인공.
+3) PaidDonePanel: 저장 원클릭 주인공. 업셀/메일/regen=다른방법 접힘.
+4) Preview: 저장 전 업셀 약화 + 저장 연결 CTA.
+
+끝나면 PASS/FAIL + 수정 파일 목록만.
