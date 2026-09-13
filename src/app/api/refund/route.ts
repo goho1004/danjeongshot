@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   ASV_LIMIT,
   REDO_LIMIT,
-  getOrder,
   refundEligibility,
 } from "@/lib/orders";
+import { getOrderDurable } from "@/lib/orderDurable";
 import { createRefundRequest } from "@/lib/refundRequests";
 
 /**
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const order = getOrder(orderId);
+  const order = await getOrderDurable(orderId);
   if (!order) {
     return NextResponse.json({ error: "주문을 찾을 수 없습니다." }, { status: 404 });
   }
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const orderId = req.nextUrl.searchParams.get("orderId") ?? "";
   const elig = refundEligibility(orderId);
-  const order = getOrder(orderId);
+  const order = orderId ? await getOrderDurable(orderId) : undefined;
   return NextResponse.json({
     ...elig,
     autoRefund: false,

@@ -71,6 +71,16 @@ CS_CONTACT_PHONE=      # CS 표시용(선택)
 2. 본인(또는 업무 그룹)에 봇 시작 → `chat_id` 확인  
 3. `.env.local` / Vercel에 위 env
 
+## 결제 승인 후 세션 유실 (동시접속·cold)
+
+코드: `ORDER_TICKET_REQUIRED` · `ORDER_NOT_FOUND` · `MARK_PAID_FAILED`  
+정본: [`CONCURRENCY.md`](CONCURRENCY.md)
+
+1. 사용자 화면 주문번호(`ord_…`) 확보  
+2. Toss에서 해당 orderId 승인 여부 확인  
+3. 승인 + 제품 미전달 → 시스템 결함 · 환불 또는 수동 복구  
+4. triage `refund_*` / `duplicate_charge` → TG
+
 ## 보고 조건 (`notifyWatchdog`)
 
 **TG 전송:** `refund_*` · `duplicate_charge` · `abuse_threat` / `escalate_urgent`  

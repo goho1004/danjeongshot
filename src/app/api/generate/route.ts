@@ -17,13 +17,16 @@ import {
 import {
   canRunAsv,
   canRunRedo,
-  markAsv,
   markCutDelivered,
-  markRedo,
   putOrder,
-  resolveOrder,
 } from "@/lib/orders";
 import { resolvePaidOrder } from "@/lib/orderPaid";
+import {
+  markAsvDurable,
+  markRedoDurable,
+  persistOrder,
+  resolveOrderDurable,
+} from "@/lib/orderDurable";
 import {
   bindPreviewToOrder,
   replaceCleanAsset,
@@ -38,9 +41,21 @@ import {
   toUserFacingGenerateError,
 } from "@/lib/userFacingErrors";
 import { ensurePngBuffer } from "@/lib/ensurePng";
+import {
+  appendGenerateLog,
+  shortOrderPrefix,
+} from "@/lib/generateCallLog";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
+
+function noteGen(
+  entry: Parameters<typeof appendGenerateLog>[0]
+): void {
+  void appendGenerateLog(entry).catch(() => {
+    /* ledger never blocks generate */
+  });
+}
 
 type ModelResult =
   | { success: true; imageUrl: string; timeSec: string; cleanPng?: Buffer }
@@ -155,6 +170,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (stage === "redo") {
+      await resolveOrderDurable(orderId, unlockToken);
       const gate = canRunRedo(orderId, unlockToken);
       if (!gate.ok) {
         return NextResponse.json(
@@ -164,6 +180,7 @@ export async function POST(req: NextRequest) {
       }
     }
     if (stage === "asv") {
+      await resolveOrderDurable(orderId, unlockToken);
       const gate = canRunAsv(orderId, unlockToken);
       if (!gate.ok) {
         return NextResponse.json(
@@ -208,10 +225,10 @@ export async function POST(req: NextRequest) {
     ) => {
       let order =
         stage === "redo"
-          ? markRedo(orderId, unlockToken)
+          ? await markRedoDurable(orderId, unlockToken)
           : stage === "asv"
-            ? markAsv(orderId, unlockToken)
-            : resolveOrder(orderId, unlockToken);
+            ? await markAsvDurable(orderId, unlockToken)
+            : await resolveOrderDurable(orderId, unlockToken);
       if (!order?.paid) {
         return NextResponse.json(
           { error: "결제 확인 후 만들 수 있습니다." },
@@ -234,6 +251,7 @@ export async function POST(req: NextRequest) {
         order = putOrder({ ...order, previewAssetId: asset.id });
       }
       const delivered = markCutDelivered(order.id, order.unlockToken) || order;
+      await persistOrder(delivered);
       const previewVault = sealPreviewVault({ cleanPng, purposeId });
       const imageUrl = cleanDataUrl(cleanPng);
       return NextResponse.json({
@@ -259,7 +277,7 @@ export async function POST(req: NextRequest) {
         easterVariant?: "glyph" | "animal";
       }[]
     ) => {
-      let order = resolveOrder(orderId, unlockToken);
+      let order = await resolveOrderDurable(orderId, unlockToken);
       if (!order?.paid) {
         return NextResponse.json(
           { error: "결제 확인 후 만들 수 있습니다." },
@@ -290,6 +308,7 @@ export async function POST(req: NextRequest) {
         order = putOrder({ ...order, previewAssetId: asset.id });
       }
       const delivered = markCutDelivered(order.id, order.unlockToken) || order;
+      await persistOrder(delivered);
 
       const shots: ShotPayload[] = [];
       for (let i = 0; i < shotResults.length; i++) {
@@ -368,6 +387,7 @@ export async function POST(req: NextRequest) {
         };
       });
 
+      const previewStarted = Date.now();
       if (forceMock) {
         const mocked = await Promise.all(
           slotMeta.map(async (m) => {
@@ -380,6 +400,16 @@ export async function POST(req: NextRequest) {
             };
           })
         );
+        noteGen({
+          stage: "preview",
+          geminiCalls: 0,
+          geminiOk: 0,
+          mock: true,
+          ok: true,
+          purposeId,
+          orderPrefix: shortOrderPrefix(orderId),
+          ms: Date.now() - previewStarted,
+        });
         return finishPaidPreview(mocked);
       }
 
@@ -435,6 +465,7 @@ export async function POST(req: NextRequest) {
         slotMeta.map((m) => callLite(m.variantIndex))
       );
 
+      const geminiOk = results.filter((r) => r.success && r.cleanPng).length;
       const finalized: {
         cleanPng: Buffer;
         timeSec: string;
@@ -444,6 +475,17 @@ export async function POST(req: NextRequest) {
       for (let i = 0; i < results.length; i++) {
         const r = results[i];
         if (!r.success || !r.cleanPng) {
+          noteGen({
+            stage: "preview",
+            geminiCalls: PREVIEW_SHOT_COUNT,
+            geminiOk,
+            mock: false,
+            ok: false,
+            code: "STUDIO_BUSY",
+            purposeId,
+            orderPrefix: shortOrderPrefix(orderId),
+            ms: Date.now() - previewStarted,
+          });
           return NextResponse.json(
             { error: STUDIO_BUSY, code: "STUDIO_BUSY" },
             { status: 503 }
@@ -456,15 +498,36 @@ export async function POST(req: NextRequest) {
           easterVariant: slotMeta[i].easterVariant,
         });
       }
+      noteGen({
+        stage: "preview",
+        geminiCalls: PREVIEW_SHOT_COUNT,
+        geminiOk: PREVIEW_SHOT_COUNT,
+        mock: false,
+        ok: true,
+        purposeId,
+        orderPrefix: shortOrderPrefix(orderId),
+        ms: Date.now() - previewStarted,
+      });
       return finishPaidPreview(finalized);
     }
 
     // —— redo / asv: 단일 컷 (이스터 ✗) ——
     const variantIndex = stage === "redo" ? 0 : 1;
     const label = stage === "redo" ? "다시 만든 컷" : "A/S 서비스 컷";
+    const singleStarted = Date.now();
 
     if (forceMock) {
       const cleanPng = await mockCleanPng(label);
+      noteGen({
+        stage,
+        geminiCalls: 0,
+        geminiOk: 0,
+        mock: true,
+        ok: true,
+        purposeId,
+        orderPrefix: shortOrderPrefix(orderId),
+        ms: Date.now() - singleStarted,
+      });
       return finishPaidSingle(cleanPng, "0.1", label);
     }
 
@@ -518,12 +581,33 @@ export async function POST(req: NextRequest) {
 
     const result = await callLite(variantIndex);
     if (!result.success || !result.cleanPng) {
+      noteGen({
+        stage,
+        geminiCalls: 1,
+        geminiOk: 0,
+        mock: false,
+        ok: false,
+        code: "STUDIO_BUSY",
+        purposeId,
+        orderPrefix: shortOrderPrefix(orderId),
+        ms: Date.now() - singleStarted,
+      });
       return NextResponse.json(
         { error: STUDIO_BUSY, code: "STUDIO_BUSY" },
         { status: 503 }
       );
     }
 
+    noteGen({
+      stage,
+      geminiCalls: 1,
+      geminiOk: 1,
+      mock: false,
+      ok: true,
+      purposeId,
+      orderPrefix: shortOrderPrefix(orderId),
+      ms: Date.now() - singleStarted,
+    });
     return finishPaidSingle(result.cleanPng, result.timeSec, label);
   } catch (err) {
     console.error("[generate] unhandled", err instanceof Error ? err.message : err);

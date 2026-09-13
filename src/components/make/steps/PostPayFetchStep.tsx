@@ -50,7 +50,10 @@ export default function PostPayFetchStep({
   setExtraCustom,
 }: PostPayFetchStepProps) {
   return (
-    <div className="rounded-2xl border border-accent/30 bg-accent-soft/40 p-5 space-y-4">
+    <div
+      id="djs-result-hero"
+      className="rounded-2xl border border-accent/30 bg-accent-soft/40 p-5 space-y-4"
+    >
       <div>
         <p className="text-sm font-semibold text-accent-deep">사진 받기</p>
         <p className="mt-1 text-xs text-ink-500">

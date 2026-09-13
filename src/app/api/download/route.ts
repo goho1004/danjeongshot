@@ -5,6 +5,7 @@ import {
   verifyUnlock,
   canDownloadExtraShot,
 } from "@/lib/orders";
+import { persistOrder, resolveOrderDurable } from "@/lib/orderDurable";
 import { getCleanForDownload, storePreviewAsset, bindPreviewToOrder } from "@/lib/previewAssets";
 import { sealPreviewVault, unsealPreviewVault } from "@/lib/previewVault";
 import { burnEasterWatermark } from "@/lib/watermark";
@@ -84,6 +85,18 @@ export async function POST(req: NextRequest) {
   const wantBinary =
     body.format === "binary" ||
     (req.headers.get("accept") || "").includes("image/png");
+
+  if (!orderId || !unlockToken) {
+    return NextResponse.json(
+      {
+        error: "결제 확인이 필요합니다. 같은 기기·브라우저에서 다시 결제해 주세요.",
+        code: "UNLOCK_FAIL",
+      },
+      { status: 403 }
+    );
+  }
+
+  await resolveOrderDurable(orderId, unlockToken);
 
   if (!verifyUnlock(orderId, unlockToken)) {
     return NextResponse.json(
@@ -165,6 +178,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "주문 확인 실패" }, { status: 403 });
     }
     marked = m;
+    await persistOrder(m);
   } else {
     marked = resolveOrder(orderId, unlockToken) || order!;
   }

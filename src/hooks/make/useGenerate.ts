@@ -4,6 +4,10 @@ import { ChangeEvent } from "react";
 import { newShotId, type Shot } from "@/lib/make/types";
 import type { MakeStudioState } from "@/hooks/make/useMakeStudioState";
 import {
+  scheduleSmoothScrollAfterRegen,
+  smoothScrollToRegenTarget,
+} from "@/lib/smoothScroll";
+import {
   STUDIO_BUSY,
   STUDIO_RETRY,
   toUserFacingGenerateError,
@@ -216,6 +220,11 @@ export function useGenerate(
   const runPaidRegen = async (stage: "redo" | "asv") => {
     const source = regenSelfie || selfie;
     if (!source || !orderId || !unlockToken) return;
+    if (state.downloaded) {
+      fail(stage, "이미 사진을 받으셨어요. 다시 만들기는 받기 전에만 가능해요.");
+      return;
+    }
+    smoothScrollToRegenTarget("start");
     state.setBusyKind(stage);
     clearFail();
     try {
@@ -267,6 +276,7 @@ export function useGenerate(
       };
       state.setShots((prev) => [...prev, shot]);
       setSelectedShotId(id);
+      scheduleSmoothScrollAfterRegen();
       if (regenSelfie) setSelfie(regenSelfie);
       if (typeof data.redoUsed !== "number" && stage === "redo") setRedoUsed((n) => n + 1);
       if (typeof data.asvUsed !== "number" && stage === "asv") setAsvUsed((n) => n + 1);

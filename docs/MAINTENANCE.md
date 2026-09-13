@@ -8,6 +8,8 @@
 셀카 → AI 단정 PNG(워터마크 미리보기) → 결제 → 클린 PNG 다운로드.  
 관공서·여권 제출용 **아님**. 받은 뒤 환불 어려움.
 
+동시접속·주문 Redis SoT: [`CONCURRENCY.md`](CONCURRENCY.md)
+
 ## 2. 일상 점검 (5분)
 
 ```bash
@@ -142,6 +144,7 @@ SMOKE_BASE=https://danjeongshot.vercel.app npm run maint:gate
 | 워터마크 | `src/lib/watermark.ts`, `WatermarkFrame.tsx` |
 | 결제 | `hooks/make/useCheckout.ts`, `src/app/api/checkout*` |
 | 미리보기 생성 | `hooks/make/useGenerate.ts`, `src/app/api/generate` |
+| generate 호출 장부 | `src/lib/generateCallLog.ts`, `GET /api/ops/generate-log` (maint 헤더) |
 | 세션 복원 | `hooks/make/useSessionRestore.ts`, `src/lib/sessionHeavy.ts` |
 | 오케스트레이터 | `src/components/make/MakeStudio.tsx` (~250줄) |
 

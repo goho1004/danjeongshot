@@ -352,19 +352,23 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
           : "첫 규격 무료 · 인화용 시트가 저장됩니다."
         : modal?.kind === "layout"
           ? modal.priceLabel
-            ? `${modal.priceLabel} · 미리보기 확인 후 저장`
+            ? modal.priceLabel === "무료"
+              ? "무료 · 미리보기 확인 후 저장"
+              : `${modal.priceLabel} · 확인 시 결제·저장 (추가 인화)`
             : "미리보기 확인 후 저장하세요."
           : modal?.kind === "extra"
             ? modal.freeOrPaid
               ? "이 컷을 사진에 저장합니다."
-              : `₩${PRICE.extraShotKrw.toLocaleString("ko-KR")} · 미리보기 후 저장`
+              : `₩${PRICE.extraShotKrw.toLocaleString("ko-KR")} · 확인 시 결제·저장`
             : undefined;
 
   const modalConfirmLabel =
     modal?.kind === "layout" && modal.priceLabel
-      ? `${modal.priceLabel} · 저장`
+      ? modal.priceLabel === "무료"
+        ? "무료 · 저장"
+        : `${modal.priceLabel} · 결제·저장`
       : modal?.kind === "extra" && !modal.freeOrPaid
-        ? `₩${PRICE.extraShotKrw.toLocaleString("ko-KR")} · 저장`
+        ? `₩${PRICE.extraShotKrw.toLocaleString("ko-KR")} · 결제·저장`
         : "저장";
 
   return (
@@ -427,7 +431,7 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
       {awaitingPhoto && (
         <>
           {shots.length > 1 && (
-            <div id="djs-result-shots" className="space-y-2 scroll-mt-4">
+            <div className="space-y-2 scroll-mt-4">
               <p className="text-[11px] font-semibold tracking-wide text-studio">
                 받을 컷 고르기 · {shots.length}장
               </p>
@@ -544,17 +548,9 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
         </div>
       )}
 
-      {/* Secondary — 저장 전엔 아무 것도 노출하지 않음(한 번 저장한 뒤에만 접힌 「다른 방법」) */}
+      {/* 저장 후: 더 받기(결제 CTA)는 펼침 · 이메일/재생은 접힘 */}
       {savedOnce && (
         <div className="space-y-3 border-t border-accent/15 pt-4">
-          <details className="rounded-xl border border-ink-100 bg-white px-3 py-3">
-            <summary className="cursor-pointer text-xs font-semibold text-ink-800">
-              다른 방법{" "}
-              <span className="ml-1 text-[11px] font-normal text-ink-400">
-                더 받기 · 이메일 · 다시 만들기
-              </span>
-            </summary>
-            <div className="mt-3 space-y-4">
           {primaryShotId && (
             <section
               className="rounded-xl border border-ink-200 bg-white px-3 py-3 space-y-3 overflow-hidden"
@@ -642,7 +638,7 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
                     >
                       {!layoutFreeUsed
                         ? "무료 규격 미리보기"
-                        : `₩${PRICE.extraLayoutKrw.toLocaleString("ko-KR")} · 미리보기`}
+                        : `₩${PRICE.extraLayoutKrw.toLocaleString("ko-KR")} · 미리보기·결제`}
                     </button>
                     <button
                       type="button"
@@ -684,7 +680,7 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
                           disabled={busy}
                           className="w-full rounded-xl border border-accent/40 bg-white py-2.5 text-sm font-semibold text-accent-deep disabled:opacity-50"
                         >
-                          나머지 전부 · ₩{PRICE.layoutPackKrw.toLocaleString("ko-KR")}
+                          나머지 전부 · ₩{PRICE.layoutPackKrw.toLocaleString("ko-KR")} · 결제
                         </button>
                       </div>
                     )}
@@ -764,6 +760,14 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
             </section>
           )}
 
+          <details className="rounded-xl border border-ink-100 bg-white px-3 py-3">
+            <summary className="cursor-pointer text-xs font-semibold text-ink-800">
+              다른 방법{" "}
+              <span className="ml-1 text-[11px] font-normal text-ink-400">
+                이메일 · 다시 만들기
+              </span>
+            </summary>
+            <div className="mt-3 space-y-4">
           <section
             className="rounded-xl border border-ink-100 bg-white px-3 py-3 space-y-3"
             aria-label="이메일"
@@ -811,6 +815,7 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
               busyKind={busyKind}
               redoUsed={redoUsed}
               asvUsed={asvUsed}
+              downloaded={downloaded}
               regenSelfie={regenSelfie}
               setRegenSelfie={setRegenSelfie}
               regenInputRef={regenInputRef}

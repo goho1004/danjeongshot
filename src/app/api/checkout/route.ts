@@ -18,6 +18,7 @@ import {
 } from "@/lib/previewAssets";
 import { unsealPreviewVault } from "@/lib/previewVault";
 import { getPaymentMode, getTossClientKey } from "@/lib/toss";
+import { persistOrder } from "@/lib/orderDurable";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -70,6 +71,7 @@ export async function POST(req: NextRequest) {
     refundLagSnapshot: snap?.refundLagSnapshot ?? null,
   });
   if (asset) bindPreviewToOrder(asset.id, order.id);
+  await persistOrder(order);
 
   const mode = getPaymentMode();
   const clientKey = mode === "toss" ? getTossClientKey() : null;

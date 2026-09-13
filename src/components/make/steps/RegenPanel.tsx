@@ -9,6 +9,8 @@ type RegenPanelProps = {
   busyKind: BusyKind;
   redoUsed: number;
   asvUsed: number;
+  /** 다운로드(받기) 완료 후면 재생성 잠금 */
+  downloaded?: boolean;
   regenSelfie: string | null;
   setRegenSelfie: (v: string | null) => void;
   regenInputRef: RefObject<HTMLInputElement | null>;
@@ -27,6 +29,7 @@ export default function RegenPanel({
   busyKind,
   redoUsed,
   asvUsed,
+  downloaded = false,
   regenSelfie,
   setRegenSelfie,
   regenInputRef,
@@ -40,6 +43,15 @@ export default function RegenPanel({
   extraCustom,
   setExtraCustom,
 }: RegenPanelProps) {
+  if (downloaded) {
+    return (
+      <p className="rounded-lg bg-ink-50 px-3 py-2 text-xs leading-relaxed text-ink-600">
+        이미 사진을 받으셨어요. 다시 만들기·한 번 더는{" "}
+        <strong className="font-semibold text-ink-800">받기 전</strong>에만 쓸 수 있어요.
+      </p>
+    );
+  }
+
   return (
     <>
       {(redoUsed < 1 || (redoUsed >= 1 && asvUsed < 1)) && (

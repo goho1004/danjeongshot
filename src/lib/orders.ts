@@ -252,6 +252,19 @@ function cache(order: Order): Order {
 export function resolveOrder(orderId: string, token: string): Order | null {
   const fromToken = unsealOrder(token);
   if (fromToken && fromToken.id === orderId) {
+    const mem = g.__djsOrders!.get(orderId);
+    // Redis·직전 갱신으로 메모리가 앞서면 stale 토큰으로 되돌리지 않음
+    if (
+      mem &&
+      mem.id === orderId &&
+      (mem.paid ||
+        mem.redoUsed > fromToken.redoUsed ||
+        mem.asvUsed > fromToken.asvUsed ||
+        (!!mem.downloadedAt && !fromToken.downloadedAt) ||
+        mem.layoutPaidSizeIds.length > fromToken.layoutPaidSizeIds.length)
+    ) {
+      return mem;
+    }
     g.__djsOrders!.set(fromToken.id, fromToken);
     return fromToken;
   }

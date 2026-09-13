@@ -33,7 +33,7 @@ export default function PreviewStep({
   const multi = shots.length > 1;
 
   return (
-    <div>
+    <div id="djs-result-shots" className="scroll-mt-4">
       <h2 className="text-sm font-semibold text-ink-700">5. 컷 고르기</h2>
       <p className="mt-1 text-xs text-ink-500">
         {multi
@@ -103,7 +103,11 @@ export default function PreviewStep({
 
       <button
         type="button"
-        onClick={() => smoothScrollToRegenTarget("start")}
+        onClick={() => {
+          const hero = document.getElementById("djs-result-hero");
+          if (hero) hero.scrollIntoView({ behavior: "smooth", block: "start" });
+          else smoothScrollToRegenTarget("start");
+        }}
         className="mt-4 w-full rounded-xl bg-ink-950 py-3 text-sm font-semibold text-white sm:mx-auto sm:block sm:w-auto sm:px-8"
       >
         다음: 저장 ↓
