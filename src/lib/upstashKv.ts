@@ -29,12 +29,32 @@ export function upstashHealth(): {
   return { configured: !!creds(), lastStatus, lastKind };
 }
 
+/** URL·토큰 형태만 검증 (값 로깅 ✗) — Vercel env 오기입 판별용 */
+function configKind(c: { url: string; token: string }): string | null {
+  if (/[\r\n]/.test(c.token)) return "bad-token";
+  let u: URL;
+  try {
+    u = new URL(c.url);
+  } catch {
+    return "bad-url";
+  }
+  if (u.protocol !== "https:") return "bad-scheme";
+  if (!u.hostname || !u.hostname.includes(".")) return "bad-host";
+  return null;
+}
+
 async function runCommand(parts: unknown[]): Promise<CmdOk | CmdFail> {
   const c = creds();
   if (!c) {
     lastStatus = null;
     lastKind = "no-creds";
     return { ok: false, kind: "no-creds" };
+  }
+  const ck = configKind(c);
+  if (ck) {
+    lastStatus = null;
+    lastKind = ck;
+    return { ok: false, kind: ck };
   }
   try {
     const res = await fetch(c.url, {
