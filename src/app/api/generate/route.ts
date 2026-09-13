@@ -49,12 +49,15 @@ import {
 export const runtime = "nodejs";
 export const maxDuration = 90;
 
-function noteGen(
+/** Vercel에서 void면 응답 직후 동결되어 Upstash LPUSH가 유실됨 → 반드시 await */
+async function noteGen(
   entry: Parameters<typeof appendGenerateLog>[0]
-): void {
-  void appendGenerateLog(entry).catch(() => {
+): Promise<void> {
+  try {
+    await appendGenerateLog(entry);
+  } catch {
     /* ledger never blocks generate */
-  });
+  }
 }
 
 type ModelResult =
@@ -400,7 +403,7 @@ export async function POST(req: NextRequest) {
             };
           })
         );
-        noteGen({
+        await noteGen({
           stage: "preview",
           geminiCalls: 0,
           geminiOk: 0,
@@ -475,7 +478,7 @@ export async function POST(req: NextRequest) {
       for (let i = 0; i < results.length; i++) {
         const r = results[i];
         if (!r.success || !r.cleanPng) {
-          noteGen({
+          await noteGen({
             stage: "preview",
             geminiCalls: PREVIEW_SHOT_COUNT,
             geminiOk,
@@ -498,7 +501,7 @@ export async function POST(req: NextRequest) {
           easterVariant: slotMeta[i].easterVariant,
         });
       }
-      noteGen({
+      await noteGen({
         stage: "preview",
         geminiCalls: PREVIEW_SHOT_COUNT,
         geminiOk: PREVIEW_SHOT_COUNT,
@@ -518,7 +521,7 @@ export async function POST(req: NextRequest) {
 
     if (forceMock) {
       const cleanPng = await mockCleanPng(label);
-      noteGen({
+      await noteGen({
         stage,
         geminiCalls: 0,
         geminiOk: 0,
@@ -581,7 +584,7 @@ export async function POST(req: NextRequest) {
 
     const result = await callLite(variantIndex);
     if (!result.success || !result.cleanPng) {
-      noteGen({
+      await noteGen({
         stage,
         geminiCalls: 1,
         geminiOk: 0,
@@ -598,7 +601,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    noteGen({
+    await noteGen({
       stage,
       geminiCalls: 1,
       geminiOk: 1,

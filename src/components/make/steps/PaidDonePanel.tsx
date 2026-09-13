@@ -492,6 +492,33 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
               저장 후 인화 레이아웃 첫 규격은 무료로 받을 수 있어요.
             </p>
           )}
+          <p className="text-[11px] leading-relaxed text-ink-400">
+            마음에 안 들면 받기 전에 아래에서 다시 만들기·한 번 더를 쓸 수 있어요. 받은
+            뒤에는 잠깁니다.
+          </p>
+          <section
+            className="rounded-xl border border-ink-100 bg-white px-3 py-3 space-y-3"
+            aria-label="다시 만들기"
+          >
+            <RegenPanel
+              busyKind={busyKind}
+              redoUsed={redoUsed}
+              asvUsed={asvUsed}
+              downloaded={downloaded}
+              regenSelfie={regenSelfie}
+              setRegenSelfie={setRegenSelfie}
+              regenInputRef={regenInputRef}
+              onRegenFile={onRegenFile}
+              runPaidRegen={runPaidRegen}
+              error={error}
+              errorAt={errorAt}
+              subjectLook={subjectLook}
+              extraPresetIds={extraPresetIds}
+              toggleExtraPreset={toggleExtraPreset}
+              extraCustom={extraCustom}
+              setExtraCustom={setExtraCustom}
+            />
+          </section>
         </>
       )}
 
