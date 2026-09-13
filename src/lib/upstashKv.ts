@@ -87,8 +87,8 @@ async function runCommand(parts: unknown[]): Promise<CmdOk | CmdFail> {
     return { ok: true, result: (j as { result?: unknown }).result };
   } catch (e) {
     lastStatus = null;
-    const code =
-      (e as { code?: unknown })?.code ?? (e as Error)?.name ?? "throw";
+    const ce = e as { code?: unknown; cause?: { code?: unknown } };
+    const code = ce?.code ?? ce?.cause?.code ?? (e as Error)?.name ?? "throw";
     lastKind = `network:${String(code).slice(0, 40)}`;
     return { ok: false, kind: lastKind };
   }
