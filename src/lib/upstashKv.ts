@@ -31,7 +31,7 @@ export function upstashHealth(): {
 
 /** URL·토큰 형태만 검증 (값 로깅 ✗) — Vercel env 오기입 판별용 */
 function configKind(c: { url: string; token: string }): string | null {
-  if (/[\r\n]/.test(c.token)) return "bad-token";
+  if (/[\s"'`]/.test(c.token)) return "bad-token";
   let u: URL;
   try {
     u = new URL(c.url);
@@ -85,10 +85,12 @@ async function runCommand(parts: unknown[]): Promise<CmdOk | CmdFail> {
       return { ok: true, result: j[0]?.result };
     }
     return { ok: true, result: (j as { result?: unknown }).result };
-  } catch {
+  } catch (e) {
     lastStatus = null;
-    lastKind = "network";
-    return { ok: false, kind: "network" };
+    const code =
+      (e as { code?: unknown })?.code ?? (e as Error)?.name ?? "throw";
+    lastKind = `network:${String(code).slice(0, 40)}`;
+    return { ok: false, kind: lastKind };
   }
 }
 
