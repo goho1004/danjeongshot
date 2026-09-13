@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       layoutPackPaid: true,
       layoutFreeUsed: updated.layoutFreeUsed,
       layoutPaidSizeIds: updated.layoutPaidSizeIds,
-      notice: `레이아웃 전체 패키지 ₩${PRICE.layoutPackKrw.toLocaleString("ko-KR")} (샌드박스)`,
+      notice: `레이아웃 전체 패키지 ₩${PRICE.layoutPackKrw.toLocaleString("ko-KR")} (정식 결제 준비 중 · 지금은 무료)`,
     });
   }
 
@@ -132,6 +132,6 @@ export async function POST(req: NextRequest) {
     layoutPackPaid: updated.layoutPackPaid,
     layoutFreeUsed: updated.layoutFreeUsed,
     layoutPaidSizeIds: updated.layoutPaidSizeIds,
-    notice: `레이아웃 ₩${PRICE.extraLayoutKrw.toLocaleString("ko-KR")} (샌드박스)`,
+    notice: `레이아웃 ₩${PRICE.extraLayoutKrw.toLocaleString("ko-KR")} (정식 결제 준비 중 · 지금은 무료)`,
   });
 }

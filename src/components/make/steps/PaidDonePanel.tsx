@@ -354,21 +354,21 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
           ? modal.priceLabel
             ? modal.priceLabel === "무료"
               ? "무료 · 미리보기 확인 후 저장"
-              : `${modal.priceLabel} · 확인 시 결제·저장 (추가 인화)`
+              : `${modal.priceLabel} · 확인 시 저장 (추가 인화 · 지금은 무료)`
             : "미리보기 확인 후 저장하세요."
           : modal?.kind === "extra"
             ? modal.freeOrPaid
               ? "이 컷을 사진에 저장합니다."
-              : `₩${PRICE.extraShotKrw.toLocaleString("ko-KR")} · 확인 시 결제·저장`
+              : `₩${PRICE.extraShotKrw.toLocaleString("ko-KR")} · 확인 시 저장 (지금은 무료)`
             : undefined;
 
   const modalConfirmLabel =
     modal?.kind === "layout" && modal.priceLabel
       ? modal.priceLabel === "무료"
         ? "무료 · 저장"
-        : `${modal.priceLabel} · 결제·저장`
+        : `${modal.priceLabel} · 무료 저장`
       : modal?.kind === "extra" && !modal.freeOrPaid
-        ? `₩${PRICE.extraShotKrw.toLocaleString("ko-KR")} · 결제·저장`
+        ? `₩${PRICE.extraShotKrw.toLocaleString("ko-KR")} · 무료 저장`
         : "저장";
 
   return (
@@ -588,7 +588,7 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
                 <p className="mt-0.5 text-[11px] text-ink-500">
                   {isPlus
                     ? "플러스 포함 규격 외 · 다른 사이즈·추가 컷"
-                    : "다른 인화 규격 · 추가 컷(미리보기 후 결제)"}
+                    : "다른 인화 규격 · 추가 컷(미리보기 후 저장 · 지금은 무료)"}
                 </p>
               </div>
               <div className="space-y-3">
@@ -665,7 +665,7 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
                     >
                       {!layoutFreeUsed
                         ? "무료 규격 미리보기"
-                        : `₩${PRICE.extraLayoutKrw.toLocaleString("ko-KR")} · 미리보기·결제`}
+                        : `₩${PRICE.extraLayoutKrw.toLocaleString("ko-KR")} · 미리보기 (지금은 무료)`}
                     </button>
                     <button
                       type="button"
@@ -707,7 +707,7 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
                           disabled={busy}
                           className="w-full rounded-xl border border-accent/40 bg-white py-2.5 text-sm font-semibold text-accent-deep disabled:opacity-50"
                         >
-                          나머지 전부 · ₩{PRICE.layoutPackKrw.toLocaleString("ko-KR")} · 결제
+                          나머지 전부 · ₩{PRICE.layoutPackKrw.toLocaleString("ko-KR")} · 미리보기 (지금은 무료)
                         </button>
                       </div>
                     )}
@@ -726,7 +726,7 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
               {extraShots.length > 0 && (
                 <div className="space-y-2 border-t border-ink-100 pt-3">
                   <p className="text-[11px] font-semibold text-ink-600">
-                    다른 컷 · ₩{PRICE.extraShotKrw.toLocaleString("ko-KR")}
+                    다른 컷 (지금은 무료)
                   </p>
                   <ul className="space-y-2">
                     {extraShots.map((shot) => {
@@ -776,7 +776,7 @@ export default function PaidDonePanel(props: PaidDonePanelProps) {
                               ? "…"
                               : freeOrPaid
                                 ? "받기"
-                                : `₩${PRICE.extraShotKrw.toLocaleString("ko-KR")}`}
+                                : "무료로 받기"}
                           </button>
                         </li>
                       );

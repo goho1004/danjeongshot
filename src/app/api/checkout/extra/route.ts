@@ -58,8 +58,8 @@ export async function POST(req: NextRequest) {
       amountKrw,
       notice:
         amountKrw > 0
-          ? `추가 컷 ₩${amountKrw.toLocaleString("ko-KR")} (샌드박스 결제 완료)`
-          : "이미 결제된 컷입니다.",
+          ? "추가 컷 무료 제공 · 다운로드 준비됨"
+          : "이미 받은 컷입니다.",
     });
   }
 
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     previewVault: nextVault,
     notice:
       amountKrw > 0
-        ? `추가 컷 ₩${amountKrw.toLocaleString("ko-KR")} · 다운로드 준비됨`
+        ? "추가 컷 무료 제공 · 다운로드 준비됨"
         : "추가 컷 다운로드 준비됨",
   });
 }
