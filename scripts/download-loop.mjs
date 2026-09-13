@@ -3,17 +3,23 @@
  * Asserts: paid unlock + binary PNG bytes (API).
  * SMOKE_SESSION env set → generate 생략 (gate 공용 세션)
  */
+import { readFileSync } from "fs";
 import { createPaidSession } from "./maint/checks/prepPaid.mjs";
 
 const BASE = process.env.SMOKE_BASE || "https://danjeongshot.vercel.app";
 
-async function main() {
-  let session = null;
-  if (process.env.SMOKE_SESSION) {
-    session = JSON.parse(process.env.SMOKE_SESSION);
-  } else {
-    session = await createPaidSession(BASE);
+function loadSession() {
+  if (process.env.SMOKE_SESSION_FILE) {
+    return JSON.parse(readFileSync(process.env.SMOKE_SESSION_FILE, "utf8"));
   }
+  if (process.env.SMOKE_SESSION) {
+    return JSON.parse(process.env.SMOKE_SESSION);
+  }
+  return null;
+}
+
+async function main() {
+  const session = loadSession() || (await createPaidSession(BASE));
 
   const dl = await fetch(`${BASE}/api/download`, {
     method: "POST",

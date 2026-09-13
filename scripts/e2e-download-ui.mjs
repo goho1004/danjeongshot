@@ -2,14 +2,23 @@
  * E2E: pay-first 세션 → /make?paid=1 복원 → 사진에 저장 (또는 이 컷 받기)
  */
 import { chromium } from "playwright";
+import { readFileSync } from "fs";
 import { createPaidSession } from "./maint/checks/prepPaid.mjs";
 
 const BASE = process.env.SMOKE_BASE || "https://danjeongshot.vercel.app";
 
+function loadSession() {
+  if (process.env.SMOKE_SESSION_FILE) {
+    return JSON.parse(readFileSync(process.env.SMOKE_SESSION_FILE, "utf8"));
+  }
+  if (process.env.SMOKE_SESSION) {
+    return JSON.parse(process.env.SMOKE_SESSION);
+  }
+  return null;
+}
+
 async function main() {
-  const paid = process.env.SMOKE_SESSION
-    ? JSON.parse(process.env.SMOKE_SESSION)
-    : await createPaidSession(BASE);
+  const paid = loadSession() || (await createPaidSession(BASE));
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ acceptDownloads: true });
