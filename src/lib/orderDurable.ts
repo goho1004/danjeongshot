@@ -81,20 +81,14 @@ export async function resolveOrderDurable(
   const memOk = !!(mem && mem.unlockToken === token);
   if (!tokenOk && !memOk) return null;
 
-  let redis = await loadOrderById(orderId);
-  // Upstash Global 복제 지연: 결제 직후 paid:true 토큰인데 Redis가 아직
-  // 구버전(paid:false)을 보여줄 수 있음 — 짧게 재조회(최대 3회, 총 ~600ms)
-  if (redis && !redis.paid && tokenOk && fromToken?.paid) {
-    for (const delayMs of [120, 200, 300]) {
-      await new Promise((r) => setTimeout(r, delayMs));
-      const retry = await loadOrderById(orderId);
-      if (retry?.paid) {
-        redis = retry;
-        break;
-      }
-    }
-  }
+  const redis = await loadOrderById(orderId);
   if (redis) {
+    // Upstash Global 복제 지연 대비: 서명된 토큰(위조 불가, AES-GCM)이
+    // paid:true인데 방금 읽은 Redis 레플리카가 아직 구버전(false)일 수
+    // 있음 — 이 경우만 paid를 토큰 신뢰(카운터는 그대로 Redis SoT 유지).
+    if (!redis.paid && tokenOk && fromToken?.paid) {
+      return { ...redis, paid: true };
+    }
     // Redis 카운터를 SoT로 — stale 토큰이 redoUsed를 되돌리지 못하게
     return redis;
   }
