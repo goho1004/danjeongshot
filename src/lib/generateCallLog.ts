@@ -4,7 +4,13 @@
  * 셀피·프롬프트·키 ✗ · 과금 추적용 메타만.
  */
 
-import { hasUpstash, kvLpush, kvLrange, kvLtrim } from "@/lib/upstashKv";
+import {
+  hasUpstash,
+  kvLpush,
+  kvLrange,
+  kvLtrim,
+  upstashHealth,
+} from "@/lib/upstashKv";
 
 const KEY = "djs:genlog:v1";
 const PROBE_KEY = "djs:genlog:probe:v1";
@@ -114,13 +120,31 @@ export async function listGenerateLogs(limit = 100): Promise<{
   };
 }
 
-/** maint — LPUSH→LRANGE round-trip (키·프롬프트 ✗) */
+/** maint — LPUSH→LRANGE round-trip (키·프롬프트·값 ✗, 단계+상태만) */
+let lastProbeErr: string | null = null;
+
+export function genLogProbeErr(): string | null {
+  return lastProbeErr;
+}
+
 export async function probeGenLogStore(): Promise<boolean> {
-  if (!hasUpstash()) return false;
+  lastProbeErr = null;
+  if (!hasUpstash()) {
+    lastProbeErr = "no-creds";
+    return false;
+  }
   const tag = `probe:${Date.now()}`;
-  if (!(await kvLpush(PROBE_KEY, tag))) return false;
+  if (!(await kvLpush(PROBE_KEY, tag))) {
+    const h = upstashHealth();
+    lastProbeErr = `lpush:${h.lastKind ?? "fail"}`;
+    return false;
+  }
   const raw = await kvLrange(PROBE_KEY, 0, 0);
-  if (!raw?.length || raw[0] !== tag) return false;
+  if (!raw?.length || raw[0] !== tag) {
+    const h = upstashHealth();
+    lastProbeErr = raw ? "mismatch" : `lrange:${h.lastKind ?? "fail"}`;
+    return false;
+  }
   await kvLtrim(PROBE_KEY, 1, 0);
   return true;
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  genLogProbeErr,
   listGenerateLogs,
   probeGenLogStore,
   sumGeminiCalls,
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ...data,
     storeOk,
+    storeErr: storeOk ? null : genLogProbeErr(),
     sums,
     note:
       "geminiCalls=실제 Interactions 발사 수. preview 성공 시 보통 3. mock은 0.",

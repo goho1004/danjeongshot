@@ -15,11 +15,27 @@ export function hasUpstash(): boolean {
 }
 
 type CmdOk = { ok: true; result: unknown };
-type CmdFail = { ok: false };
+type CmdFail = { ok: false; status?: number; kind?: string };
+
+/** HTTP 상태·실패 종류만 (URL·토큰·값 ✗) — ops 진단용 */
+let lastStatus: number | null = null;
+let lastKind: string | null = null;
+
+export function upstashHealth(): {
+  configured: boolean;
+  lastStatus: number | null;
+  lastKind: string | null;
+} {
+  return { configured: !!creds(), lastStatus, lastKind };
+}
 
 async function runCommand(parts: unknown[]): Promise<CmdOk | CmdFail> {
   const c = creds();
-  if (!c) return { ok: false };
+  if (!c) {
+    lastStatus = null;
+    lastKind = "no-creds";
+    return { ok: false, kind: "no-creds" };
+  }
   try {
     const res = await fetch(c.url, {
       method: "POST",
@@ -29,16 +45,30 @@ async function runCommand(parts: unknown[]): Promise<CmdOk | CmdFail> {
       },
       body: JSON.stringify(parts),
     });
-    if (!res.ok) return { ok: false };
-    const j = (await res.json()) as
-      | { result?: unknown }
-      | Array<{ result?: unknown }>;
+    if (!res.ok) {
+      lastStatus = res.status;
+      lastKind = `http-${res.status}`;
+      return { ok: false, status: res.status, kind: lastKind };
+    }
+    lastStatus = res.status;
+    let j: { result?: unknown } | Array<{ result?: unknown }>;
+    try {
+      j = (await res.json()) as
+        | { result?: unknown }
+        | Array<{ result?: unknown }>;
+    } catch {
+      lastKind = "parse";
+      return { ok: false, status: res.status, kind: "parse" };
+    }
+    lastKind = null;
     if (Array.isArray(j)) {
       return { ok: true, result: j[0]?.result };
     }
-    return { ok: true, result: j.result };
+    return { ok: true, result: (j as { result?: unknown }).result };
   } catch {
-    return { ok: false };
+    lastStatus = null;
+    lastKind = "network";
+    return { ok: false, kind: "network" };
   }
 }
 
@@ -84,9 +114,18 @@ export async function kvSetNx(
 
 export async function kvLpush(key: string, value: string): Promise<boolean> {
   const r = await runCommand(["LPUSH", key, value]);
-  if (!r.ok) return false;
+  if (!r.ok) {
+    console.warn(
+      `[upstash] lpush-fail status=${r.status ?? "-"} kind=${r.kind ?? "-"}`
+    );
+    return false;
+  }
   const n = typeof r.result === "number" ? r.result : Number(r.result);
-  return Number.isFinite(n) && n > 0;
+  const ok = Number.isFinite(n) && (n as number) > 0;
+  if (!ok) {
+    console.warn(`[upstash] lpush-fail kind=bad-result typeof=${typeof r.result}`);
+  }
+  return ok;
 }
 
 export async function kvLtrim(
@@ -114,7 +153,15 @@ export async function kvLrange(
     String(start),
     String(stop),
   ]);
-  if (!r.ok) return null;
-  if (!Array.isArray(r.result)) return null;
+  if (!r.ok) {
+    console.warn(
+      `[upstash] lrange-fail status=${r.status ?? "-"} kind=${r.kind ?? "-"}`
+    );
+    return null;
+  }
+  if (!Array.isArray(r.result)) {
+    console.warn(`[upstash] lrange-fail kind=bad-result typeof=${typeof r.result}`);
+    return null;
+  }
   return r.result.map((x) => String(x));
 }
