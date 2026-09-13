@@ -7,6 +7,7 @@
 import { hasUpstash, kvLpush, kvLrange, kvLtrim } from "@/lib/upstashKv";
 
 const KEY = "djs:genlog:v1";
+const PROBE_KEY = "djs:genlog:probe:v1";
 
 export type GenerateLogEntry = {
   ts: string;
@@ -75,6 +76,7 @@ export async function appendGenerateLog(
       await kvLtrim(KEY, 0, max - 1);
       return;
     }
+    console.warn("[genlog] push-fail");
   }
 
   mem.unshift(entry);
@@ -110,6 +112,17 @@ export async function listGenerateLogs(limit = 100): Promise<{
     ttlDays: Math.round(ttlMs() / (24 * 60 * 60 * 1000)),
     entries: entries.slice(0, take),
   };
+}
+
+/** maint — LPUSH→LRANGE round-trip (키·프롬프트 ✗) */
+export async function probeGenLogStore(): Promise<boolean> {
+  if (!hasUpstash()) return false;
+  const tag = `probe:${Date.now()}`;
+  if (!(await kvLpush(PROBE_KEY, tag))) return false;
+  const raw = await kvLrange(PROBE_KEY, 0, 0);
+  if (!raw?.length || raw[0] !== tag) return false;
+  await kvLtrim(PROBE_KEY, 1, 0);
+  return true;
 }
 
 /** 과금 역산용 — 기간 내 geminiCalls 합 */

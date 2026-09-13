@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   listGenerateLogs,
+  probeGenLogStore,
   sumGeminiCalls,
 } from "@/lib/generateCallLog";
 import { isMaintSmokeRequest } from "@/lib/maintSmoke";
@@ -16,10 +17,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   const limit = Number(req.nextUrl.searchParams.get("limit") ?? "100");
-  const data = await listGenerateLogs(limit);
+  const [data, storeOk] = await Promise.all([
+    listGenerateLogs(limit),
+    probeGenLogStore(),
+  ]);
   const sums = sumGeminiCalls(data.entries);
   return NextResponse.json({
     ...data,
+    storeOk,
     sums,
     note:
       "geminiCalls=실제 Interactions 발사 수. preview 성공 시 보통 3. mock은 0.",

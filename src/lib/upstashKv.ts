@@ -84,7 +84,9 @@ export async function kvSetNx(
 
 export async function kvLpush(key: string, value: string): Promise<boolean> {
   const r = await runCommand(["LPUSH", key, value]);
-  return r.ok;
+  if (!r.ok) return false;
+  const n = typeof r.result === "number" ? r.result : Number(r.result);
+  return Number.isFinite(n) && n > 0;
 }
 
 export async function kvLtrim(
