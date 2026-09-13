@@ -19,6 +19,7 @@
     "maint:payment-integrity": "node scripts/maint/index.mjs payment-integrity",
     "maint:safari-multipart": "node scripts/maint/index.mjs safari-multipart",
     "maint:gate": "node scripts/maint/index.mjs gate",
+    "maint:gate:notify": "node scripts/maint/gate-notify.mjs",
     "maint:loop": "node scripts/maint/index.mjs loop",
     "watchdog:cday": "node scripts/watchdog-cday.mjs",
     "watchdog:cday:gate": "node scripts/watchdog-cday.mjs --gate",

@@ -1,0 +1,23 @@
+name: maint-gate
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: maint gate + telegram notify
+        run: node scripts/maint/gate-notify.mjs --base https://danjeongshot.vercel.app
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_WATCHDOG_CHAT_ID: ${{ secrets.TELEGRAM_WATCHDOG_CHAT_ID }}
+          MAINT_SMOKE_SECRET: ${{ secrets.MAINT_SMOKE_SECRET }}
