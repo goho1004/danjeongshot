@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent } from "react";
+import { ChangeEvent, useRef } from "react";
 import { newShotId, type Shot } from "@/lib/make/types";
 import type { MakeStudioState } from "@/hooks/make/useMakeStudioState";
 import {
@@ -20,6 +20,7 @@ export function useGenerate(
   subjectLook: string,
   subjectSeason: string
 ) {
+  const inflightRef = useRef(false);
   const {
     selfie,
     setSelfie,
@@ -74,6 +75,8 @@ export function useGenerate(
       fail("generate", "팩을 고르고 결제한 뒤 첫 컷을 볼 수 있어요.");
       return;
     }
+    if (inflightRef.current || state.busyKind) return;
+    inflightRef.current = true;
     setBusyKind("preview");
     clearFail();
     setShots([]);
@@ -195,6 +198,7 @@ export function useGenerate(
     } catch {
       fail("generate", STUDIO_BUSY);
     } finally {
+      inflightRef.current = false;
       setBusyKind(null);
     }
   };
@@ -224,6 +228,8 @@ export function useGenerate(
       fail(stage, "이미 사진을 받으셨어요. 다시 만들기는 받기 전에만 가능해요.");
       return;
     }
+    if (inflightRef.current || state.busyKind) return;
+    inflightRef.current = true;
     smoothScrollToRegenTarget("start");
     state.setBusyKind(stage);
     clearFail();
@@ -283,6 +289,7 @@ export function useGenerate(
     } catch {
       fail(stage, STUDIO_BUSY);
     } finally {
+      inflightRef.current = false;
       state.setBusyKind(null);
     }
   };

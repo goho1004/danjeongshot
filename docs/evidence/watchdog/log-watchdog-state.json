@@ -1,0 +1,40 @@
+{
+  "lastAlertKeys": {},
+  "lastRun": "2026-09-16T14:56:06.755Z",
+  "lastMetrics": {
+    "n": 69,
+    "gemini": 168,
+    "avg": 2.43,
+    "okRate": 81.2,
+    "multi3": 56,
+    "pauseN": 13,
+    "byCode": {
+      "STUDIO_PAUSE": 13
+    },
+    "byHour": {
+      "0": 4,
+      "1": 5,
+      "4": 5,
+      "8": 10,
+      "11": 7,
+      "12": 10,
+      "13": 16,
+      "14": 2,
+      "16": 4,
+      "20": 2,
+      "21": 4
+    }
+  },
+  "lastAlerts": [
+    {
+      "key": "gemini_multiplier",
+      "level": "HIGH",
+      "msg": "과금 배수 의 avg×2.43 · geminiCalls≥3 행 56/69"
+    },
+    {
+      "key": "burst_h13",
+      "level": "MED",
+      "msg": "시간대 버스트 KST 13시 16건 / 69"
+    }
+  ]
+}

@@ -294,19 +294,21 @@ export default function HomePage() {
         <section id="shoot-guide" className="border-t border-ink-100 bg-white">
           <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-24">
             <h2 className="font-display text-3xl text-ink-950">셀카, 이렇게만</h2>
-            <p className="mt-2 text-sm text-ink-500">결과가 가장 많이 갈리는 부분이에요.</p>
+            <p className="mt-2 text-sm text-ink-500">
+              결과가 가장 많이 갈리는 부분이에요. (원일 촬영 가이드 · 단정 톤)
+            </p>
             <div className="mt-10 grid gap-6 md:grid-cols-2">
               <div className="border-l-2 border-studio bg-studio-mist/50 px-6 py-5">
-                <p className="text-sm font-semibold text-studio-deep">잘 나오는 컷</p>
+                <p className="text-sm font-semibold text-studio-deep">잘 나오는 컷 · O</p>
                 <ul className="mt-3 space-y-1.5 text-sm text-ink-700">
-                  <li>정면, 시선은 카메라</li>
-                  <li>창가처럼 밝은 곳</li>
-                  <li>얼굴이 화면의 대부분</li>
+                  <li>정면을 보고 · 시선은 카메라</li>
+                  <li>창가처럼 밝은 곳 (어두우면 먼저 이동)</li>
+                  <li>얼굴을 원 안에 · 어깨까지</li>
                   <li>안경 반사가 적을 때</li>
                 </ul>
               </div>
               <div className="border-l-2 border-ink-200 bg-ink-50/80 px-6 py-5">
-                <p className="text-sm font-semibold text-ink-500">피해주세요</p>
+                <p className="text-sm font-semibold text-ink-500">피해주세요 · X</p>
                 <ul className="mt-3 space-y-1.5 text-sm text-ink-700">
                   <li>옆모습·아래에서 올린 셀카</li>
                   <li>단체 사진에서 얼굴만 자른 것</li>
@@ -315,6 +317,12 @@ export default function HomePage() {
                 </ul>
               </div>
             </div>
+            <p className="mt-8 text-xs text-ink-400">
+              만들기 화면에도 같은 원형 가이드가 있어요.{" "}
+              <Link href="/make" className="font-medium text-studio underline-offset-2 hover:underline">
+                /make 에서 바로 맞추기 →
+              </Link>
+            </p>
           </div>
         </section>
 
@@ -395,7 +403,7 @@ export default function HomePage() {
               {[
                 {
                   q: "기본이랑 플러스 차이가 뭐예요?",
-                  a: "둘 다 결제 후 3컷을 만들고 그중 1장을 고릅니다. 기본(₩9,900)은 단정 PNG와 다시 만들기·A/S입니다. 플러스(₩14,900)는 여기에 반명함·증명 인화 레이아웃이 포함됩니다.",
+                  a: "둘 다 결제 후 1컷을 만듭니다. 기본(₩9,900)은 단정 PNG와 다시 만들기·A/S입니다. 플러스(₩14,900)는 여기에 반명함·증명 인화 레이아웃이 포함됩니다.",
                 },
                 {
                   q: "단정 PNG랑 인화용 레이아웃 차이가 뭐예요?",

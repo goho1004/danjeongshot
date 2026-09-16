@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
 import {
   buildPrompt,
   getPurpose,
@@ -8,6 +7,7 @@ import {
   parseSubjectSeason,
   sanitizeExtraPrompt,
 } from "@/lib/purposes";
+import { openGeminiTicket, recordBillEvent, shortActorHash, shortOrderPrefix as billOrderPrefix } from "@/lib/geminiBillGate";
 import {
   EASTER_LABEL,
   preferCleanShotIndex,
@@ -22,6 +22,7 @@ import {
 } from "@/lib/orders";
 import { resolvePaidOrder } from "@/lib/orderPaid";
 import {
+  claimPreviewGenerate,
   markAsvDurable,
   markRedoDurable,
   persistOrder,
@@ -40,21 +41,60 @@ import {
   STUDIO_RETRY,
   toUserFacingGenerateError,
 } from "@/lib/userFacingErrors";
-import { ensurePngBuffer } from "@/lib/ensurePng";
 import {
   appendGenerateLog,
   shortOrderPrefix,
 } from "@/lib/generateCallLog";
+import { appendProductEvent } from "@/lib/productEventLog";
+import { readDeviceFp } from "@/lib/previewQuota";
+import { clientIp } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
+
+type GenLogCtx = {
+  purposeId?: string;
+  orderPrefix?: string;
+  look?: string;
+  season?: string;
+  packId?: string;
+  paid?: boolean;
+  ua?: string | null;
+};
+
+/** 요청 스코프 분석 메타 — noteGen이 병합 */
+let genLogCtx: GenLogCtx = {};
 
 /** Vercel에서 void면 응답 직후 동결되어 Upstash LPUSH가 유실됨 → 반드시 await */
 async function noteGen(
   entry: Parameters<typeof appendGenerateLog>[0]
 ): Promise<void> {
   try {
-    await appendGenerateLog(entry);
+    const merged = { ...genLogCtx, ...entry };
+    await appendGenerateLog(merged);
+    const ev =
+      entry.code === "STUDIO_PAUSE"
+        ? ("pause_hit" as const)
+        : entry.code === "CUT_ALREADY"
+          ? ("cut_already" as const)
+          : entry.code === "PREVIEW_INFLIGHT"
+            ? ("inflight_block" as const)
+            : ("generate" as const);
+    await appendProductEvent({
+      event: ev,
+      ok: !!entry.ok,
+      code: entry.code,
+      purposeId: merged.purposeId,
+      packId: merged.packId,
+      orderPrefix: merged.orderPrefix,
+      look: merged.look,
+      season: merged.season,
+      ua: merged.ua,
+      ms: entry.ms,
+      geminiCalls: entry.geminiCalls,
+      geminiOk: entry.geminiOk,
+      stage: entry.stage,
+    });
   } catch {
     /* ledger never blocks generate */
   }
@@ -127,7 +167,7 @@ function parseStage(raw: unknown): Stage {
   return "preview";
 }
 
-/** 프리뷰 3컷: 0=베이스, 1·2=미세 변형 */
+/** 프리뷰 슬롯: 0=베이스, 1+ = 미세 변형 (1컷이면 변형 없음) */
 function previewVariantIndex(slot: number): number | undefined {
   if (slot <= 0) return undefined;
   return (slot - 1) % 2;
@@ -135,6 +175,31 @@ function previewVariantIndex(slot: number): number | undefined {
 
 export async function POST(req: NextRequest) {
   try {
+    const ua = req.headers.get("user-agent");
+    genLogCtx = { ua };
+
+    // 비상 정지 — 결제/생성 전에 즉시 차단 (Gemini 과금 차단)
+    if (
+      process.env.PREVIEW_EMERGENCY === "1" ||
+      process.env.PREVIEW_EMERGENCY === "true"
+    ) {
+      await noteGen({
+        stage: "preview",
+        geminiCalls: 0,
+        geminiOk: 0,
+        mock: false,
+        ok: false,
+        code: "STUDIO_PAUSE",
+        purposeId: "pause",
+        orderPrefix: "",
+        ms: 0,
+      });
+      return NextResponse.json(
+        { error: STUDIO_BUSY, code: "STUDIO_PAUSE" },
+        { status: 503 }
+      );
+    }
+
     const body = await req.json();
     const stage = parseStage(body.stage);
     const imageBase64: string | undefined = body.imageBase64;
@@ -144,6 +209,15 @@ export async function POST(req: NextRequest) {
     const orderId = String(body.orderId ?? "");
     const unlockToken = String(body.unlockToken ?? "");
     const easterOptOut = body.easterOptOut === true || body.cleanOnly === true;
+
+    genLogCtx = {
+      ua,
+      purposeId,
+      orderPrefix: shortOrderPrefix(orderId),
+      look: subjectLook,
+      season: subjectSeason,
+      paid: stage === "preview" || stage === "redo" || stage === "asv",
+    };
 
     if (!imageBase64) {
       return NextResponse.json({ error: "셀카를 먼저 업로드해 주세요." }, { status: 400 });
@@ -168,6 +242,34 @@ export async function POST(req: NextRequest) {
             payHint: true,
           },
           { status: 402 }
+        );
+      }
+      // 이미 첫 컷 전달됨 → Gemini 재호출 ✗ (이중 제출·새로고침 방어)
+      if (order.cutDeliveredAt) {
+        await noteGen({
+          stage: "preview",
+          geminiCalls: 0,
+          geminiOk: 0,
+          mock: false,
+          ok: false,
+          code: "CUT_ALREADY",
+          purposeId,
+          orderPrefix: shortOrderPrefix(orderId),
+          ms: 0,
+        });
+        return NextResponse.json(
+          {
+            error: "이미 첫 컷을 만들었어요. 다시 만들기·A/S를 이용해 주세요.",
+            code: "CUT_ALREADY",
+          },
+          { status: 409 }
+        );
+      }
+      const claimed = await claimPreviewGenerate(orderId);
+      if (!claimed) {
+        return NextResponse.json(
+          { error: STUDIO_BUSY, code: "PREVIEW_INFLIGHT" },
+          { status: 429 }
         );
       }
     }
@@ -377,7 +479,7 @@ export async function POST(req: NextRequest) {
       });
     };
 
-    // —— preview: 3컷 클린 생성 → 당첨 1슬롯만 워터마크 합성 ——
+    // —— preview: N컷(기본 1) 클린 생성 → 당첨 1슬롯만 워터마크 합성 ——
     if (stage === "preview") {
       const roll = rollEasterSlot({ optOut: easterOptOut });
       const slotMeta = Array.from({ length: PREVIEW_SHOT_COUNT }, (_, i) => {
@@ -416,10 +518,11 @@ export async function POST(req: NextRequest) {
         return finishPaidPreview(mocked);
       }
 
-      const ai = new GoogleGenAI({ apiKey: apiKey! });
-      const modelChain: { model: string; imageSize: "1K" }[] = [
-        { model: "gemini-3.1-flash-lite-image", imageSize: "1K" },
-      ];
+      // 과금 HTTP는 geminiBillGate만 — 티켓당 hardMax(기본 1)
+      const ticket = openGeminiTicket({
+        ticketId: `preview:${orderId}`,
+        maxCalls: 1,
+      });
 
       const callLite = async (v: number | undefined): Promise<ModelResult> => {
         const prompt = buildPrompt(purposeId, v, {
@@ -429,44 +532,27 @@ export async function POST(req: NextRequest) {
           extraCustom: extraCustom || undefined,
           extra: legacyExtra || undefined,
         });
-        const start = Date.now();
-        for (const { model, imageSize } of modelChain) {
-          try {
-            const interaction = await ai.interactions.create({
-              model,
-              input: [
-                { type: "text", text: prompt },
-                { type: "image", data: rawBase64, mime_type: mimeType },
-              ],
-              response_format: {
-                type: "image",
-                aspect_ratio: "3:4",
-                image_size: imageSize,
-              },
-            });
-            const timeSec = ((Date.now() - start) / 1000).toFixed(1);
-            if (interaction?.output_image?.data) {
-              const cleanBuf = await ensurePngBuffer(
-                Buffer.from(interaction.output_image.data, "base64")
-              );
-              return {
-                success: true as const,
-                imageUrl: cleanDataUrl(cleanBuf),
-                timeSec,
-                cleanPng: cleanBuf,
-              };
-            }
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            console.warn(`[generate] provider:`, msg.slice(0, 240));
-          }
+        const r = await ticket.callLite1K({
+          prompt,
+          rawBase64,
+          mimeType,
+        });
+        if (!r.ok) {
+          return { success: false, error: STUDIO_BUSY };
         }
-        return { success: false, error: STUDIO_BUSY };
+        return {
+          success: true as const,
+          imageUrl: cleanDataUrl(r.cleanPng),
+          timeSec: r.timeSec,
+          cleanPng: r.cleanPng,
+        };
       };
 
-      const results = await Promise.all(
-        slotMeta.map((m) => callLite(m.variantIndex))
-      );
+      // 순차 1컷 — Promise.all N연발 ✗ (티켓 예산이 막지만 호출면도 1회)
+      const results: ModelResult[] = [];
+      for (const m of slotMeta.slice(0, 1)) {
+        results.push(await callLite(m.variantIndex));
+      }
 
       const geminiOk = results.filter((r) => r.success && r.cleanPng).length;
       const finalized: {
@@ -534,55 +620,30 @@ export async function POST(req: NextRequest) {
       return finishPaidSingle(cleanPng, "0.1", label);
     }
 
-    const ai = new GoogleGenAI({ apiKey: apiKey! });
-    const modelChain: { model: string; imageSize: "1K" }[] = [
-      { model: "gemini-3.1-flash-lite-image", imageSize: "1K" },
-    ];
-
-    const callLite = async (v?: number): Promise<ModelResult> => {
-      const prompt = buildPrompt(purposeId, v, {
-        look: subjectLook,
-        season: subjectSeason,
-        extraPresetIds,
-        extraCustom: extraCustom || undefined,
-        extra: legacyExtra || undefined,
-      });
-      const start = Date.now();
-      for (const { model, imageSize } of modelChain) {
-        try {
-          const interaction = await ai.interactions.create({
-            model,
-            input: [
-              { type: "text", text: prompt },
-              { type: "image", data: rawBase64, mime_type: mimeType },
-            ],
-            response_format: {
-              type: "image",
-              aspect_ratio: "3:4",
-              image_size: imageSize,
-            },
-          });
-          const timeSec = ((Date.now() - start) / 1000).toFixed(1);
-          if (interaction?.output_image?.data) {
-            const cleanBuf = await ensurePngBuffer(
-              Buffer.from(interaction.output_image.data, "base64")
-            );
-            return {
-              success: true as const,
-              imageUrl: cleanDataUrl(cleanBuf),
-              timeSec,
-              cleanPng: cleanBuf,
-            };
-          }
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn(`[generate] provider:`, msg.slice(0, 240));
+    const ticket = openGeminiTicket({
+      ticketId: `${stage}:${orderId}`,
+      maxCalls: 1,
+    });
+    const prompt = buildPrompt(purposeId, variantIndex, {
+      look: subjectLook,
+      season: subjectSeason,
+      extraPresetIds,
+      extraCustom: extraCustom || undefined,
+      extra: legacyExtra || undefined,
+    });
+    const lite = await ticket.callLite1K({
+      prompt,
+      rawBase64,
+      mimeType,
+    });
+    const result: ModelResult = lite.ok
+      ? {
+          success: true,
+          imageUrl: cleanDataUrl(lite.cleanPng),
+          timeSec: lite.timeSec,
+          cleanPng: lite.cleanPng,
         }
-      }
-      return { success: false, error: STUDIO_BUSY };
-    };
-
-    const result = await callLite(variantIndex);
+      : { success: false, error: STUDIO_BUSY };
     if (!result.success || !result.cleanPng) {
       await noteGen({
         stage,

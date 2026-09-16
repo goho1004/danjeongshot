@@ -5,6 +5,7 @@
 > **B단계:** 진행 중 · 개선점 수집 (공개 푸시·초대는 병행, C를 앞지르지 않음)  
 > **와치독:** `npm run watchdog:cday` · (선택) Cursor Automation 매일 09:00 KST  
 > **당일 플레이북:** [`LAUNCH_DAY_PLAYBOOK.md`](LAUNCH_DAY_PLAYBOOK.md) (Gingiris `startup-launch` 이식) · 스킬 `danjeongshot-launch`  
+> **런칭 전 전수:** [`LAUNCH_PREFLIGHT_CHECKLIST.md`](LAUNCH_PREFLIGHT_CHECKLIST.md) · 증거 `docs/evidence/preflight/`  
 > **사이트:** https://danjeongshot.vercel.app  
 > **백업:** GitHub tag `v1.0`
 

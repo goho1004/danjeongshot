@@ -4,6 +4,7 @@ import {
   listGenerateLogs,
   probeGenLogStore,
   sumGeminiCalls,
+  summarizeGenerateLogs,
 } from "@/lib/generateCallLog";
 import { isMaintSmokeRequest } from "@/lib/maintSmoke";
 
@@ -28,7 +29,8 @@ export async function GET(req: NextRequest) {
     storeOk,
     storeErr: storeOk ? null : genLogProbeErr(),
     sums,
+    analytics: summarizeGenerateLogs(data.entries),
     note:
-      "geminiCalls=실제 Interactions 발사 수. preview 성공 시 보통 3. mock은 0.",
+      "geminiCalls=Interactions. analytics=시간대·용도·코드. PII✗. 전체요약=/api/ops/product-analytics",
   });
 }

@@ -331,9 +331,9 @@ export const PACKS: {
     id: "basic",
     name: "기본",
     priceKrw: PRICE.packBasicKrw,
-    tagline: "3컷 중 골라 받는 단정 PNG 한 장",
+    tagline: "결제 후 단정 PNG 한 장",
     bullets: [
-      "결제 후 3컷 생성 · 마음에 드는 1장 선택",
+      "결제 후 1컷 생성",
       "워터마크 없는 PNG",
       "마음에 안 들면 다시 만들기 1회 · A/S 1회",
       "인화가 필요하면 받은 뒤 규격별로 추가",
@@ -343,9 +343,9 @@ export const PACKS: {
     id: "plus",
     name: "플러스",
     priceKrw: PRICE.packPlusKrw,
-    tagline: "3컷 선택 + 자주 쓰는 인화 규격 2종",
+    tagline: "1컷 + 자주 쓰는 인화 규격 2종",
     bullets: [
-      "기본과 동일 · 3컷 중 1장 선택",
+      "기본과 동일 · 1컷 생성",
       "플러스는 민원 규격(3×4cm, 4×3cm) 파일 추가 제공",
       "키오스크에서 바로 뽑을 타일 PNG",
     ],
@@ -412,15 +412,17 @@ export const ASV_LOADING_LINES = [
 export const SHOOT_TIPS = [
   {
     title: "밝게",
-    detail: "창가나 정면 조명이 좋아요. 얼굴에 그림자·역광이 있으면 결과가 흔들리기 쉽습니다.",
+    detail:
+      "창가나 정면 조명이 좋아요. 어두우면 「더 밝은 곳으로」가 우선입니다. (원일 밝기 배지와 같은 기준)",
   },
   {
-    title: "정면·거리",
-    detail: "카메라 눈높이에서, 팔 길이만큼 떨어져 찍어 주세요. 너무 가까우면 얼굴이 늘어져 보입니다.",
+    title: "정면",
+    detail: "카메라를 정면으로 봐 주세요. 옆모습·아래에서 올린 셀카는 피합니다.",
   },
   {
-    title: "얼굴 크게",
-    detail: "어깨 위쪽이 잘 들어오게. 전신·단체·옆모습은 피해주세요.",
+    title: "원 안에 · 어깨까지",
+    detail:
+      "얼굴이 프레임 대부분·어깨 라인까지. 전신·단체·너무 가까운 초근접은 피해주세요.",
   },
   {
     title: "표정·안경",
