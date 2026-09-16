@@ -131,7 +131,9 @@ export async function recordBillEvent(
     ...partial,
     product: "danjeong",
     ts: partial.ts || new Date().toISOString(),
-    billed: partial.billed ?? partial.event === "http_start" || partial.event === "http_ok",
+    billed:
+      partial.billed ??
+      (partial.event === "http_start" || partial.event === "http_ok"),
   };
   if (partial.event === "http_fail" || partial.event === "http_start") {
     entry.billed = true;
@@ -161,7 +163,7 @@ export async function listBillLogs(limit = 100): Promise<{
   if (hasUpstash()) {
     try {
       const raw = await kvLrange(BILL_KEY, 0, take - 1);
-      entries = raw
+      entries = (raw ?? [])
         .map((line) => {
           try {
             return JSON.parse(line) as BillLogEntry;
@@ -213,11 +215,11 @@ export function summarizeBillAbuse(
       byMinute.set(minute, (byMinute.get(minute) || 0) + 1);
     }
   }
-  const multiHttpTickets = [...startsByTicket.entries()]
+  const multiHttpTickets = Array.from(startsByTicket.entries())
     .filter(([, n]) => n >= 2)
     .map(([id]) => id)
     .slice(0, 20);
-  const burstPerMinute = [...byMinute.entries()]
+  const burstPerMinute = Array.from(byMinute.entries())
     .map(([minute, n]) => ({ minute, n }))
     .sort((a, b) => b.n - a.n)
     .slice(0, 10);
