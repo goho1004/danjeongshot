@@ -14,7 +14,7 @@ import { maintHeaders } from "./prepPaid.mjs";
 async function checkout(base) {
   const res = await fetch(`${base}/api/checkout`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...maintHeaders() },
     body: JSON.stringify({ purposeId: "resume", packId: "basic" }),
   });
   const data = await res.json();

@@ -75,6 +75,16 @@ export async function POST(req: NextRequest) {
   }
 
   if (order.paid) {
+    // orderId만으로는 남의 결제완료 주문의 unlockToken을 채굴할 수 있음 — 소지 증명 필수.
+    if (!orderTicket || unsealOrder(orderTicket)?.id !== orderId) {
+      return NextResponse.json(
+        {
+          error: "주문 확인 정보가 없습니다. 결제 완료 화면에서 다시 시도해 주세요.",
+          code: "TICKET_REQUIRED",
+        },
+        { status: 403 }
+      );
+    }
     return NextResponse.json({
       ok: true,
       alreadyPaid: true,

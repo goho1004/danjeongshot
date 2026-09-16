@@ -14,7 +14,7 @@ export async function createPaidSession(base) {
 
   const co = await fetch(`${base}/api/checkout`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...maintHeaders() },
     body: JSON.stringify({
       purposeId: "resume",
       packId: "basic",

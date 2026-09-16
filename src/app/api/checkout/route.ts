@@ -19,8 +19,36 @@ import {
 import { unsealPreviewVault } from "@/lib/previewVault";
 import { getPaymentMode, getTossClientKey } from "@/lib/toss";
 import { persistOrder } from "@/lib/orderDurable";
+import { clientIp } from "@/lib/rateLimit";
+import { durableIncr } from "@/lib/durableQuota";
+import { isMaintSmokeRequest } from "@/lib/maintSmoke";
+
+const PER_IP_MINUTE = Number(process.env.CHECKOUT_PER_IP_MINUTE ?? "10");
+const PER_IP_HOUR = Number(process.env.CHECKOUT_PER_IP_HOUR ?? "60");
 
 export async function POST(req: NextRequest) {
+  if (!isMaintSmokeRequest(req)) {
+    const ip = clientIp(req);
+    const perMin = await durableIncr(`checkout:ip:m:${ip}`, PER_IP_MINUTE, 60_000);
+    if (!perMin.ok) {
+      return NextResponse.json(
+        { error: "잠시 후 다시 시도해 주세요.", code: "CHECKOUT_RATE_LIMIT" },
+        { status: 429 }
+      );
+    }
+    const perHour = await durableIncr(
+      `checkout:ip:h:${ip}`,
+      PER_IP_HOUR,
+      60 * 60_000
+    );
+    if (!perHour.ok) {
+      return NextResponse.json(
+        { error: "잠시 후 다시 시도해 주세요.", code: "CHECKOUT_RATE_LIMIT" },
+        { status: 429 }
+      );
+    }
+  }
+
   const body = await req.json();
   const purposeId = String(body.purposeId ?? "resume");
   const packId: PackId = body.packId === "plus" ? "plus" : "basic";

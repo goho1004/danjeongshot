@@ -19,7 +19,7 @@ async function main() {
 
   const co = await fetch(`${BASE}/api/checkout`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...maint },
     body: JSON.stringify({ purposeId: "resume", packId: "basic" }),
   });
   const c = await co.json();

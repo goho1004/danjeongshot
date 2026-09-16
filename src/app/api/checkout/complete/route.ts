@@ -5,9 +5,24 @@ import {
   markPaidDurable,
   persistOrder,
 } from "@/lib/orderDurable";
+import { getPaymentMode } from "@/lib/toss";
+import { isMaintSmokeRequest } from "@/lib/maintSmoke";
 
-/** 샌드박스 즉시 결제 완료. toss 는 /api/checkout/confirm 사용. */
+/**
+ * 샌드박스 즉시 결제 완료. toss 는 /api/checkout/confirm 사용.
+ * 실결제(toss) 모드에서는 무료로 paid를 부여할 수 없음 — maint smoke만 시크릿 헤더로 통과.
+ */
 export async function POST(req: NextRequest) {
+  if (getPaymentMode() === "toss" && !isMaintSmokeRequest(req)) {
+    return NextResponse.json(
+      {
+        error: "실결제 모드입니다. 토스 결제 승인 절차를 이용해 주세요.",
+        code: "TOSS_MODE_REQUIRES_CONFIRM",
+      },
+      { status: 403 }
+    );
+  }
+
   const body = await req.json();
   const orderId = String(body.orderId ?? "");
   const orderTicket = String(body.orderTicket ?? body.unlockToken ?? "");
@@ -32,6 +47,16 @@ export async function POST(req: NextRequest) {
   await persistOrder(base);
 
   if (base.paid) {
+    // orderId만으로는 남의 결제완료 주문의 unlockToken을 채굴할 수 있음 — 소지 증명 필수.
+    if (!orderTicket || unsealOrder(orderTicket)?.id !== orderId) {
+      return NextResponse.json(
+        {
+          error: "주문 확인 정보가 없습니다. 결제 완료 화면에서 다시 시도해 주세요.",
+          code: "TICKET_REQUIRED",
+        },
+        { status: 403 }
+      );
+    }
     return NextResponse.json({
       ok: true,
       alreadyPaid: true,

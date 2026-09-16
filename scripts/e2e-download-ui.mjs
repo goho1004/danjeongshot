@@ -94,7 +94,7 @@ async function main() {
       })
     );
   }, paid);
-  await page.goto(`${BASE}/make?paid=1`, { waitUntil: "networkidle", timeout: 60000 });
+  await page.goto(`${BASE}/make?resume=1`, { waitUntil: "networkidle", timeout: 60000 });
   await page.waitForTimeout(1000);
 
   const saveOrReceive = page
