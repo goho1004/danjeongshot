@@ -107,14 +107,17 @@
 | 시각(KST) | 실행자 | 결과 요약 |
 |-----------|--------|-----------|
 | 2026-09-16 ~10:15 | Cursor | 1차 전수 · **NO-GO** · 상세 `evidence/preflight/20260916/RESULTS.md` |
+| 2026-09-16 이후 | Cursor | `PREVIEW_EMERGENCY` 제거+redeploy · `geminiBillGate` 빌드 패치 · gate RED가 flow-e2e 단독으로 축소 |
+| 2026-09-17 | Claude (`danjeong-precheck-patch`) | flow-e2e 패치 + IDOR 2건/무인증 2건/checkout rate limit 패치 · 로컬 `maint:gate` **GREEN** · 상세 `evidence/preflight/20260916b/` |
 
 ### Go / No-Go
 
 | | |
 |--|--|
-| **판정** | **NO-GO** |
-| **블로커** | ① STUDIO_PAUSE로 gate RED ② B8 실측 미완 ③ High#1 extra/layout 실과금 미확정 ④ C-법·PG 미체크 |
-| **증거 경로** | `docs/evidence/preflight/20260916/` |
+| **판정** | **조건부** — 코드 P0는 해소, 프로덕션 실측·법/PG 사람체크가 남아 NO-GO 유지 |
+| **블로커(남은 것만)** | ① B8 prod 실측 미완(Cursor Gate) ② High#1 실토스연동 여부 최종 확정(제품 결정, 코드는 이미 문구정직화로 수용됨) ③ C-법·PG 미체크(사람) |
+| **해소됨** | STUDIO_PAUSE gate RED(Cursor) · flow-e2e RED(Claude, 로컬 GREEN 확인) · checkout IDOR 2건(Claude) · proto/agents 무인증(Claude) · checkout rate limit 부재(Claude) |
+| **증거 경로** | `docs/evidence/preflight/20260916/` (1차) · `docs/evidence/preflight/20260916b/` (본 라운드) |
 
 ### 1차 채점 (코드·원격)
 
