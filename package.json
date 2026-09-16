@@ -24,6 +24,8 @@
     "watchdog:cday": "node scripts/watchdog-cday.mjs",
     "watchdog:cday:gate": "node scripts/watchdog-cday.mjs --gate",
     "watchdog:cday:notify": "node scripts/watchdog-cday.mjs --notify",
+    "watchdog:logs": "node scripts/maint/log-watchdog.mjs",
+    "watchdog:logs:notify": "node scripts/maint/log-watchdog.mjs --notify",
     "launch:day": "node -e \"console.log('C-Day playbook: docs/LAUNCH_DAY_PLAYBOOK.md\\nSkill: danjeongshot-launch\\nRun: npm run watchdog:cday')\""
   },
   "dependencies": {

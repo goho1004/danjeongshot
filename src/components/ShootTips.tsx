@@ -14,7 +14,7 @@ export default function ShootTips({
       <div id={id} className="rounded-xl border border-ink-100 bg-white/80 p-3 text-xs text-ink-600">
         <p className="font-semibold text-ink-800">잘 나오는 팁</p>
         <ul className="mt-1.5 space-y-0.5 text-ink-500">
-          <li>· 밝게 · 정면 · 얼굴 크게 · 필터 OFF</li>
+          <li>· 밝게 · 정면 · 원 안에·어깨까지 · 필터 OFF</li>
           <li>· 다시 뽑을 땐 더 밝은 다른 셀카가 유리</li>
         </ul>
       </div>

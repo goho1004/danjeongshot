@@ -1,6 +1,6 @@
 /**
 
- * 의도적 이스터에그 — 3컷 중 1슬롯만 희소 보너스.
+ * 의도적 이스터에그 — PREVIEW_SHOT_COUNT 중 최대 1슬롯 희소 보너스. 2026-09-16: 프리뷰 기본 1컷.
 
  * 이상함 = 워터마크 오버레이 (프롬프트로 사진 내용 바꾸지 않음).
 
@@ -78,7 +78,7 @@ export const EASTER_PROB: Record<EasterDayKind, number> = {
 
 
 
-export const PREVIEW_SHOT_COUNT = 3;
+export const PREVIEW_SHOT_COUNT = 1;
 
 
 

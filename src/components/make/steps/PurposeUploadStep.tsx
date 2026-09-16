@@ -1,5 +1,6 @@
 import type { ChangeEvent, RefObject } from "react";
 import ShootTips from "@/components/ShootTips";
+import SelfieFrameGuide from "@/components/make/SelfieFrameGuide";
 import InlineError from "@/components/make/InlineError";
 import ExtraPromptFields from "@/components/make/ExtraPromptFields";
 import {
@@ -79,11 +80,14 @@ export default function PurposeUploadStep({
 
       <div>
         <h2 className="text-sm font-semibold text-ink-700">셀카를 올려 주세요</h2>
+        <p className="mt-1 text-xs text-ink-500">
+          원일 촬영 가이드(정면·원·어깨·밝기)를 단정 톤으로 맞춰 두었어요.
+        </p>
         <div className="mt-3">
           <ShootTips compact />
         </div>
         <div
-          className="mt-3 cursor-pointer rounded-2xl border border-dashed border-ink-300 bg-white/70 p-8 text-center"
+          className="mt-3 cursor-pointer rounded-2xl border border-dashed border-ink-300 bg-white/70 p-5 text-center"
           onClick={() => inputRef.current?.click()}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
@@ -92,25 +96,23 @@ export default function PurposeUploadStep({
             if (f) processFile(f);
           }}
         >
-          {selfie ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={selfie} alt="업로드" className="mx-auto max-h-56 rounded-lg object-contain" />
-          ) : (
-            <div>
-              <p className="text-sm text-ink-500">클릭하거나 끌어다 놓기</p>
-              <p className="mt-1 text-xs text-ink-300">정면 · 밝은 곳 · 얼굴 크게</p>
-            </div>
+          <SelfieFrameGuide selfieUrl={selfie} />
+          {!selfie && (
+            <p className="mt-3 text-sm text-ink-500">클릭하거나 끌어다 놓기</p>
           )}
           <input
             ref={inputRef as RefObject<HTMLInputElement>}
             type="file"
             accept="image/*"
+            capture="user"
             className="hidden"
             onChange={onFile}
           />
         </div>
         <div className="mt-2 flex items-center justify-between gap-2">
-          <p className="text-[11px] text-ink-300">JPG·PNG·HEIC · 20MB 이하</p>
+          <p className="text-[11px] text-ink-300">
+            JPG·PNG·HEIC · 20MB 이하 · 전면 카메라 권장
+          </p>
           {selfie && (
             <button
               type="button"

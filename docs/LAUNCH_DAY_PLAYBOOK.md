@@ -3,6 +3,7 @@
 > **원본 스킬:** [Gingiris `startup-launch`](https://github.com/Gingiris-1031/gingiris-skills/tree/main/skills/startup-launch) (MIT · @WeiYipei)  
 > **이식:** 2026-08-07 · 단정샷 C-Day **2026-09-01 (월) KST**  
 > **일정·체크리스트 정본:** [`LAUNCH_DDAY.md`](LAUNCH_DDAY.md)  
+> **런칭 전 전수:** [`LAUNCH_PREFLIGHT_CHECKLIST.md`](LAUNCH_PREFLIGHT_CHECKLIST.md) (과금·버그·보안·gate)  
 > **오프라인:** [`WATCHDOG_OFFLINE_RUNBOOK.md`](WATCHDOG_OFFLINE_RUNBOOK.md)  
 > **에이전트 스킬:** `danjeongshot-launch`  
 > **사이트:** https://danjeongshot.vercel.app

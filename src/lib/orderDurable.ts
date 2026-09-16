@@ -29,6 +29,18 @@ function redoClaimKey(id: string) {
 function asvClaimKey(id: string) {
   return `djs:claim:asv:${id}`;
 }
+/** 프리뷰 생성 중 이중 POST 차단 (짧은 TTL) */
+function previewGenClaimKey(id: string) {
+  return `djs:claim:previewgen:${id}`;
+}
+
+const PREVIEW_GEN_CLAIM_TTL_SEC = 120;
+const gPreviewInflight = globalThis as unknown as {
+  __djsPreviewGenInflight?: Map<string, number>;
+};
+if (!gPreviewInflight.__djsPreviewGenInflight) {
+  gPreviewInflight.__djsPreviewGenInflight = new Map();
+}
 
 /** 저장용 — unlockToken 제외(재봉인은 putOrder/cache) */
 type StoredOrder = Omit<Order, "unlockToken">;
@@ -176,6 +188,30 @@ export async function markAsvDurable(
   if (!next) return null;
   await persistOrder(next);
   return next;
+}
+
+/**
+ * 프리뷰 Gemini 호출 직전 원자 claim.
+ * false = 이미 생성 중/완료 클레임 · true = 획득 · null = Upstash 없음(메모리 fallback)
+ */
+export async function claimPreviewGenerate(
+  orderId: string
+): Promise<boolean> {
+  const nx = await kvSetNx(
+    previewGenClaimKey(orderId),
+    "1",
+    PREVIEW_GEN_CLAIM_TTL_SEC
+  );
+  if (nx === true) return true;
+  if (nx === false) return false;
+
+  // Upstash 없음 — 프로세스 로컬 (베타 완화)
+  const map = gPreviewInflight.__djsPreviewGenInflight!;
+  const now = Date.now();
+  const until = map.get(orderId) ?? 0;
+  if (until > now) return false;
+  map.set(orderId, now + PREVIEW_GEN_CLAIM_TTL_SEC * 1000);
+  return true;
 }
 
 export { hasUpstash as orderStoreUsesUpstash };
