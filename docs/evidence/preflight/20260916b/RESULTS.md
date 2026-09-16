@@ -56,3 +56,15 @@ npm run maint:payment-integrity -- --base https://danjeongshot.vercel.app
 # 2) /make 프리뷰 1회 → Google AI Studio Interactions + /api/ops/bill-log 대조 (API_CALL_MAP.md A9 절차)
 # 3) (권장, P1) maint:gate에 `npm run build` 단계 추가 검토 — 이번에 build-blocking 결함이 HTTP 스모크만으로는 안 잡혔음
 ```
+
+---
+
+## 재개 메모 — Windows 재부팅 후 (2026-09-16, 이어서 재검증)
+
+재부팅으로 이전 세션이 이 워크트리에서 중단됐다가 재개. 코드 변경 없이 아래만 추가 수행:
+
+- 워크트리 락이 재부팅 전 PID(20560) 기준으로 남아있었음 — 재부팅 후 그 PID가 무관한 프로세스로 재사용된 걸 확인하고 `git worktree unlock`으로 정상 해제(강제 종료 아님).
+- 중단된 셸 명령이 남긴 0바이트 파일 5개(`REDO_LIMIT)`·`b.n`·`httpOk`·`maxCalls)`·`{,`) 삭제 — 실작업물 아님.
+- `npm run build` 재실행(재부팅 후 첫 빌드) → **동일하게 GREEN, 34/34 페이지**, 드리프트 없음.
+- 독립 재검증: 커밋 `aa106a3` 3파일 diff 전문 재검토 · `isMaintSmokeRequest`/`getPaymentMode` 정의 확인 · `payment-integrity.mjs`가 `complete` 호출에 이미 `maintHeaders()`를 보내는지 확인(패치로 인한 회귀 없음) · `/proto/agents` 페이지가 클라이언트 `fetch`만 쓰는지 확인(SSR 우회 경로 없음, API 게이트로 충분) · `SelfieFrameGuide.tsx` 전문 확인(props로 받은 `selfieUrl` 렌더만, 업로드 로직 없음, B7과 일치) — 전부 이전 세션 결론과 일치.
+- **판정·Section H 변동 없음**(위 내용 그대로 유효). 브랜치가 로컬에만 있어 재부팅 시 유실 위험이 있었으므로 origin에 push.
