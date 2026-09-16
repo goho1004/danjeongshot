@@ -68,3 +68,20 @@ npm run maint:payment-integrity -- --base https://danjeongshot.vercel.app
 - `npm run build` 재실행(재부팅 후 첫 빌드) → **동일하게 GREEN, 34/34 페이지**, 드리프트 없음.
 - 독립 재검증: 커밋 `aa106a3` 3파일 diff 전문 재검토 · `isMaintSmokeRequest`/`getPaymentMode` 정의 확인 · `payment-integrity.mjs`가 `complete` 호출에 이미 `maintHeaders()`를 보내는지 확인(패치로 인한 회귀 없음) · `/proto/agents` 페이지가 클라이언트 `fetch`만 쓰는지 확인(SSR 우회 경로 없음, API 게이트로 충분) · `SelfieFrameGuide.tsx` 전문 확인(props로 받은 `selfieUrl` 렌더만, 업로드 로직 없음, B7과 일치) — 전부 이전 세션 결론과 일치.
 - **판정·Section H 변동 없음**(위 내용 그대로 유효). 브랜치가 로컬에만 있어 재부팅 시 유실 위험이 있었으므로 origin에 push.
+
+---
+
+## 재개 메모 2 — 새 세션(PC 2회 재사망 후), 신규 코드변경 없이 독립 재검증만 (2026-09-16b, 3차)
+
+새 세션·새 컨텍스트로 재개(`docs/handoff/CLAUDE_DANJEONG_LAUNCH_PRECHECK_v1.md` 원 지시서만 보고 착수, 위 기존 결론은 몰랐던 상태에서 shared checkout의 dirty state → 기존 `worktree-danjeong-precheck-20260916b`(origin push 확인됨)를 발견해 그 위에서 이어감). 아래는 이번 세션이 **독립적으로 처음부터 재확인**한 것 — 코드 변경 없음(신규 P0 없었음):
+
+- `git merge-base --is-ancestor master HEAD` → OK, master(6157b13)에서 유실된 커밋 없음.
+- `npm run build` 재실행(3번째) → **동일 GREEN, 34/34 페이지**.
+- P0 패치 3곳 grep 재확인: `checkout/complete/route.ts`의 `getPaymentMode()==="toss" && !isMaintSmokeRequest(req)`, `proto/agents/route.ts` GET(45행)·POST(79행) 양쪽 `isMaintSmokeRequest` 게이트 — 전부 존재.
+- **B4 재판정: 부분(1차 20260916) → PASS로 승격.** `previewVault.ts`/`previewQuota.ts`/`orders.ts`/`abuseSignals.ts` 4곳 모두 `PREVIEW_QUOTA_SECRET → GEMINI_API_KEY → 하드코드` 동일 폴백 체인(기존 보안리뷰 Low#8과 동일 근거, 신규 아님) — 배포 단일 인스턴스 내에서는 자체 일관. 실제 불일치 시나리오는 시크릿 로테이션 중 6시간 이내 vault뿐이며, `download/route.ts:134-159`가 `unsealPreviewVault` 실패 시 `order.previewAssetId` 스토어로 자동 폴백 후, 그것도 없으면 깨끗한 410 `PREVIEW_EXPIRED`("세션이 만료되었습니다. 다시 만들기 후 받아 주세요")로 안전 종료 확인 — 내부정보 노출 없음, 재현 경로 있음.
+- B1/B2 회귀 점검: `generate/route.ts`(이번 WIP에서 245줄 최대폭 변경분) 재열람 — `resolvePaidOrder`(preview, 236행) · `resolveOrderDurable`+`canRunRedo`/`canRunAsv`(redo/asv, 278-337행) 전부 `order?.paid` 체크 유지, pre-pay 토큰 통과 경로 없음. `36cf7f1`/`0a76e9e`/`70d3ad9` 패턴 회귀 없음.
+- `docs/handoff/SECURITY_REVIEW_FINDINGS_v1.md` 원본(2026-09-13, OpenCode, 9건) 직접 재열람 후 위 FINDINGS.md 표와 1:1 대조 — 상태 문구까지 정확히 일치(#1 Option B 완료 표기 포함), drift 없음.
+- `package-lock.json`이 `git status`에 M으로 뜨지만 `git diff`는 완전 공백 — Windows `core.autocrlf=true` 라인엔딩 아티팩트로 판단(실콘텐츠 변경 아님), 커밋 안 함.
+- shared checkout(`D:\Memento\projects\danjeongshot`, master) 쪽에 남아있던 uncommitted 변경분은 이 워크트리 브랜치의 베이스 커밋(`5555d57`)에 이미 전량 반영되어 있음을 diff로 확인 — shared checkout 쪽은 건드리지 않고 그대로 둠(다른 세션 소유 가능성).
+
+**판정·Section H 재확인 결과: 변동 없음.** 이번 세션 발견 신규 P0 = 0건(전량 이전 세션이 이미 처리). 유일한 갱신은 B4 부분→PASS.
