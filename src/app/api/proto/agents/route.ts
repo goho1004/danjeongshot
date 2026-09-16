@@ -13,6 +13,7 @@ import {
 } from "@/lib/agentLedger";
 import { computeSettlement } from "@/lib/settlementMath";
 import { randomBytes } from "crypto";
+import { isMaintSmokeRequest } from "@/lib/maintSmoke";
 
 export const runtime = "nodejs";
 
@@ -39,8 +40,11 @@ function publicAgent(a: Agent) {
   };
 }
 
-/** GET — 5대리점 + 원장 요약 + 정산 미리보기 */
-export async function GET() {
+/** GET — 5대리점 + 원장 요약 + 정산 미리보기. 대리점 재무데이터라 maint 헤더 필수. */
+export async function GET(req: NextRequest) {
+  if (!isMaintSmokeRequest(req)) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
   const file = loadAgentFile();
   const agents = file.agents.map((a) => {
     const events = listLedger(a.code);
@@ -70,8 +74,11 @@ export async function GET() {
   });
 }
 
-/** POST action=seed — 데모 결제 N건씩 심기 */
+/** POST action=seed|clear — 원장 시드/삭제. 파괴적 쓰기라 maint 헤더 필수(운영에선 seed/clear 자체를 안 씀). */
 export async function POST(req: NextRequest) {
+  if (!isMaintSmokeRequest(req)) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
   const body = await req.json().catch(() => ({}));
   const action = String(body.action || "seed");
 

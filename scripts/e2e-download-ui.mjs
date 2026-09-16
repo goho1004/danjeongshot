@@ -1,5 +1,6 @@
 /**
- * E2E: pay-first 세션 → /make?paid=1 복원 → 사진에 저장 (또는 이 컷 받기)
+ * E2E: pay-first 세션 → /result 복원 → 사진에 저장 (또는 이 컷 받기)
+ * (paidDone UI는 /result 전용 — /make?paid=1은 useSessionRestore 대상이 아니라 복원 자체가 안 됨)
  */
 import { chromium } from "playwright";
 import { readFileSync } from "fs";
@@ -94,7 +95,7 @@ async function main() {
       })
     );
   }, paid);
-  await page.goto(`${BASE}/make?paid=1`, { waitUntil: "networkidle", timeout: 60000 });
+  await page.goto(`${BASE}/result`, { waitUntil: "networkidle", timeout: 60000 });
   await page.waitForTimeout(1000);
 
   const saveOrReceive = page
