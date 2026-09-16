@@ -107,6 +107,7 @@
 | 시각(KST) | 실행자 | 결과 요약 |
 |-----------|--------|-----------|
 | 2026-09-16 ~10:15 | Cursor | 1차 전수 · **NO-GO** · 상세 `evidence/preflight/20260916/RESULTS.md` |
+| 2026-09-16 (b) | Claude Code (`claude --bg`) | 재검증 · API/billing P0 3건 발견·패치(`geminiBillGate.ts` 빌드 실패, `checkout/complete` 결제우회, `proto/agents` 무인증 원장쓰기) · **조건부 NO-GO**(1차 블로커 ①pause②C-법PG③Med승인 은 Out이라 잔존) · 상세 `evidence/preflight/20260916b/RESULTS.md` · 커밋 `aa106a3`(브랜치 `worktree-danjeong-precheck-20260916b`) |
 
 ### Go / No-Go
 
