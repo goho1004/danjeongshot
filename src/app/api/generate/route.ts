@@ -22,7 +22,9 @@ import {
 } from "@/lib/orders";
 import { resolvePaidOrder } from "@/lib/orderPaid";
 import {
+  claimAsvGenerate,
   claimPreviewGenerate,
+  claimRedoGenerate,
   markAsvDurable,
   markRedoDurable,
   persistOrder,
@@ -266,7 +268,13 @@ export async function POST(req: NextRequest) {
         );
       }
       const claimed = await claimPreviewGenerate(orderId);
-      if (!claimed) {
+      if (claimed === "unavailable") {
+        return NextResponse.json(
+          { error: STUDIO_BUSY, code: "STORE_UNAVAILABLE" },
+          { status: 503 }
+        );
+      }
+      if (claimed === "inflight") {
         return NextResponse.json(
           { error: STUDIO_BUSY, code: "PREVIEW_INFLIGHT" },
           { status: 429 }
@@ -311,6 +319,39 @@ export async function POST(req: NextRequest) {
             : undefined,
         }
       );
+    }
+
+    // P0-1: redo/asv도 mock·Gemini 생성 전에 원자 claim — 동시 2 POST면 1승1패, Gemini HTTP 최대 1회.
+    // canRun* 통과 후·발사 전이므로 정당한 순차 재시도는 게이트 순서(redo→asv·1회 한도)가 먼저 걸러냄.
+    if (stage === "redo") {
+      const rc = await claimRedoGenerate(orderId);
+      if (rc === "unavailable") {
+        return NextResponse.json(
+          { error: STUDIO_BUSY, code: "STORE_UNAVAILABLE" },
+          { status: 503 }
+        );
+      }
+      if (rc === "inflight") {
+        return NextResponse.json(
+          { error: STUDIO_BUSY, code: "REDO_INFLIGHT" },
+          { status: 429 }
+        );
+      }
+    }
+    if (stage === "asv") {
+      const ac = await claimAsvGenerate(orderId);
+      if (ac === "unavailable") {
+        return NextResponse.json(
+          { error: STUDIO_BUSY, code: "STORE_UNAVAILABLE" },
+          { status: 503 }
+        );
+      }
+      if (ac === "inflight") {
+        return NextResponse.json(
+          { error: STUDIO_BUSY, code: "ASV_INFLIGHT" },
+          { status: 429 }
+        );
+      }
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
