@@ -45,6 +45,8 @@ export type GenerateLogEntry = {
   hourKst?: number;
   weekdayKst?: number;
   uaClass?: UaClass;
+  /** maint 자동 스모크 구분 — x-djs-maint-smoke 유효 시 "maint_smoke" (uaClass만으로 구분 ✗) */
+  via?: string;
 };
 
 function maxEntries(): number {
@@ -213,6 +215,7 @@ export function summarizeGenerateLogs(entries: GenerateLogEntry[]) {
   const byCode: Record<string, number> = {};
   const byStage: Record<string, number> = {};
   const byUa: Record<string, number> = {};
+  const byVia: Record<string, number> = {};
   const byDay: Record<string, { http: number; gemini: number }> = {};
   let okN = 0;
   for (const e of entries) {
@@ -226,6 +229,7 @@ export function summarizeGenerateLogs(entries: GenerateLogEntry[]) {
     if (e.code) byCode[e.code] = (byCode[e.code] || 0) + 1;
     byStage[e.stage] = (byStage[e.stage] || 0) + 1;
     if (e.uaClass) byUa[e.uaClass] = (byUa[e.uaClass] || 0) + 1;
+    if (e.via) byVia[e.via] = (byVia[e.via] || 0) + 1;
     const day = e.ts.slice(0, 10);
     if (!byDay[day]) byDay[day] = { http: 0, gemini: 0 };
     byDay[day].http += 1;
@@ -243,6 +247,7 @@ export function summarizeGenerateLogs(entries: GenerateLogEntry[]) {
     byCode,
     byStage,
     byUaClass: byUa,
+    byVia,
     byDay,
     sums: sumGeminiCalls(entries),
   };
