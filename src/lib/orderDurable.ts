@@ -33,13 +33,29 @@ function asvClaimKey(id: string) {
 function previewGenClaimKey(id: string) {
   return `djs:claim:previewgen:${id}`;
 }
+/** redo 생성 중 이중 POST 차단 — 1회 소진키(redoClaimKey)와 분리된 단기 inflight키 */
+function redoGenClaimKey(id: string) {
+  return `djs:claim:redogen:${id}`;
+}
+/** asv 생성 중 이중 POST 차단 — 1회 소진키(asvClaimKey)와 분리된 단기 inflight키 */
+function asvGenClaimKey(id: string) {
+  return `djs:claim:asvgen:${id}`;
+}
 
 const PREVIEW_GEN_CLAIM_TTL_SEC = 120;
-const gPreviewInflight = globalThis as unknown as {
+const gGenInflight = globalThis as unknown as {
   __djsPreviewGenInflight?: Map<string, number>;
+  __djsRedoGenInflight?: Map<string, number>;
+  __djsAsvGenInflight?: Map<string, number>;
 };
-if (!gPreviewInflight.__djsPreviewGenInflight) {
-  gPreviewInflight.__djsPreviewGenInflight = new Map();
+if (!gGenInflight.__djsPreviewGenInflight) {
+  gGenInflight.__djsPreviewGenInflight = new Map();
+}
+if (!gGenInflight.__djsRedoGenInflight) {
+  gGenInflight.__djsRedoGenInflight = new Map();
+}
+if (!gGenInflight.__djsAsvGenInflight) {
+  gGenInflight.__djsAsvGenInflight = new Map();
 }
 
 /** 저장용 — unlockToken 제외(재봉인은 putOrder/cache) */
@@ -167,7 +183,9 @@ export async function markRedoDurable(
 
   const claim = await kvSetNx(redoClaimKey(orderId), "1", CLAIM_TTL_SEC);
   if (claim === false) return null; // 이미 1회 소진(병렬 포함)
-  // claim === null → Upstash 없음/오류 → 메모리 markRedo만 (기존 동작)
+  // claim === null(Upstash 없음/오류) → fail-closed: 저장소 없이 소진 표시 불가.
+  // 과금 전 사전 claim(claimRedoGenerate)이 1차 방벽이므로 여기는 1회성 보장용.
+  if (claim === null && !mockClaimBypass()) return null;
 
   const next = markRedo(orderId, token);
   if (!next) return null;
@@ -183,6 +201,8 @@ export async function markAsvDurable(
 
   const claim = await kvSetNx(asvClaimKey(orderId), "1", CLAIM_TTL_SEC);
   if (claim === false) return null;
+  // P0-2 fail-closed: null이면 메모리 markAsv로 진행하지 않음 (위 markRedoDurable과 동일).
+  if (claim === null && !mockClaimBypass()) return null;
 
   const next = markAsv(orderId, token);
   if (!next) return null;
@@ -191,27 +211,74 @@ export async function markAsvDurable(
 }
 
 /**
- * 프리뷰 Gemini 호출 직전 원자 claim.
- * false = 이미 생성 중/완료 클레임 · true = 획득 · null = Upstash 없음(메모리 fallback)
+ * 유료 generate 사전 claim 결과.
+ * - "ok": 선점 성공 → Gemini 발사 허용
+ * - "inflight": 이미 선점됨 → HTTP 발사 없이 429
+ * - "unavailable": 저장소(Upstash) 없음/오류 → HTTP 발사 없이 503 (P0-2 fail-closed)
+ */
+export type GenerateClaim = "ok" | "inflight" | "unavailable";
+
+/**
+ * 메모리 폴백 예외 1줄: MOCK_GENERATE=1(로컬/테스트)일 때만 허용 · prod 가정은 Upstash 필수.
+ * mock은 Gemini를 쏘지 않으므로 메모리 claim으로 과금 리스크 없음.
+ */
+function mockClaimBypass(): boolean {
+  return process.env.MOCK_GENERATE === "1";
+}
+
+/** Gemini 호출 직전 원자 선점 — Upstash NX 우선, null이면 fail-closed(메모리 폴백은 mock 예외만). */
+async function claimGenSlot(
+  key: string,
+  mem: Map<string, number>
+): Promise<GenerateClaim> {
+  const nx = await kvSetNx(key, "1", PREVIEW_GEN_CLAIM_TTL_SEC);
+  if (nx === true) return "ok";
+  if (nx === false) return "inflight";
+  if (!mockClaimBypass()) return "unavailable";
+
+  // Upstash 없음 — mock 전용 프로세스 로컬 (Gemini 미발사이므로 과금 영향 없음)
+  const now = Date.now();
+  const until = mem.get(key) ?? 0;
+  if (until > now) return "inflight";
+  mem.set(key, now + PREVIEW_GEN_CLAIM_TTL_SEC * 1000);
+  return "ok";
+}
+
+/**
+ * 프리뷰 Gemini 호출 직전 원자 claim (TTL 120s · 실패해도 해제 없음 — 과금 방지가 UX보다 우선).
  */
 export async function claimPreviewGenerate(
   orderId: string
-): Promise<boolean> {
-  const nx = await kvSetNx(
+): Promise<GenerateClaim> {
+  return claimGenSlot(
     previewGenClaimKey(orderId),
-    "1",
-    PREVIEW_GEN_CLAIM_TTL_SEC
+    gGenInflight.__djsPreviewGenInflight!
   );
-  if (nx === true) return true;
-  if (nx === false) return false;
+}
 
-  // Upstash 없음 — 프로세스 로컬 (베타 완화)
-  const map = gPreviewInflight.__djsPreviewGenInflight!;
-  const now = Date.now();
-  const until = map.get(orderId) ?? 0;
-  if (until > now) return false;
-  map.set(orderId, now + PREVIEW_GEN_CLAIM_TTL_SEC * 1000);
-  return true;
+/**
+ * P0-1: redo Gemini/mock 생성 전 원자 claim.
+ * 1회 소진키(redoClaimKey)와 별도 단기키이므로 이중 mark·영구잠금 없음.
+ */
+export async function claimRedoGenerate(
+  orderId: string
+): Promise<GenerateClaim> {
+  return claimGenSlot(
+    redoGenClaimKey(orderId),
+    gGenInflight.__djsRedoGenInflight!
+  );
+}
+
+/**
+ * P0-1: asv Gemini/mock 생성 전 원자 claim (redo와 동일 구조).
+ */
+export async function claimAsvGenerate(
+  orderId: string
+): Promise<GenerateClaim> {
+  return claimGenSlot(
+    asvGenClaimKey(orderId),
+    gGenInflight.__djsAsvGenInflight!
+  );
 }
 
 export { hasUpstash as orderStoreUsesUpstash };
