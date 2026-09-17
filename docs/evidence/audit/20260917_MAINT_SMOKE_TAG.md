@@ -46,7 +46,7 @@
 - ticket `maint:` 접두: done
 - smoke PNG 문구: done
 - branch: opencode/maint-smoke-tag-20260917
-- commit: <sha>
+- commit: 3da369887ed33b2ab3fa36877638c8065d94fc5a
 - 증거: docs/evidence/audit/20260917_MAINT_SMOKE_TAG.md
 - 막힘: none
 - 배포: Cursor
