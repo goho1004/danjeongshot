@@ -45,6 +45,8 @@ export type BillLogEntry = {
   purposeId?: string;
   /** device/ip 짧은 해시 (원문 ✗) */
   actorHash?: string;
+  /** maint 자동 스모크 구분 — x-djs-maint-smoke 유효 시 "maint_smoke" */
+  via?: string;
   callIndex?: number;
   maxCalls?: number;
   spent?: number;
@@ -278,6 +280,15 @@ export type GeminiTicket = {
   }) => Promise<LiteResult>;
 };
 
+export const MAINT_SMOKE_VIA = "maint_smoke" as const;
+
+/** maint 자동이면 ticketId 앞에 "maint:" — 이미 있으면 중복 ✗ */
+export function withMaintTicketPrefix(ticketId: string, isMaint: boolean): string {
+  const id = (ticketId || "").trim();
+  if (!isMaint || !id) return ticketId;
+  return id.startsWith("maint:") ? id : `maint:${id}`;
+}
+
 export function openGeminiTicket(opts: {
   ticketId: string;
   maxCalls?: number;
@@ -285,6 +296,7 @@ export function openGeminiTicket(opts: {
   orderPrefix?: string;
   purposeId?: string;
   actorHash?: string;
+  via?: string;
 }): GeminiTicket {
   const hard = hardMaxCallsPerTicket();
   const maxCalls = Math.min(
@@ -297,6 +309,7 @@ export function openGeminiTicket(opts: {
     orderPrefix: opts.orderPrefix,
     purposeId: opts.purposeId,
     actorHash: opts.actorHash,
+    via: opts.via,
   };
 
   void recordBillEvent({

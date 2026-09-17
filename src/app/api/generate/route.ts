@@ -7,7 +7,8 @@ import {
   parseSubjectSeason,
   sanitizeExtraPrompt,
 } from "@/lib/purposes";
-import { openGeminiTicket, recordBillEvent, shortActorHash, shortOrderPrefix as billOrderPrefix } from "@/lib/geminiBillGate";
+import { MAINT_SMOKE_VIA, openGeminiTicket, recordBillEvent, shortActorHash, shortOrderPrefix as billOrderPrefix, withMaintTicketPrefix } from "@/lib/geminiBillGate";
+import { isMaintSmokeRequest } from "@/lib/maintSmoke";
 import {
   EASTER_LABEL,
   preferCleanShotIndex,
@@ -62,6 +63,8 @@ type GenLogCtx = {
   packId?: string;
   paid?: boolean;
   ua?: string | null;
+  /** maint 자동 스모크 — "maint_smoke" (uaClass만으로 구분 ✗) */
+  via?: string;
 };
 
 /** 요청 스코프 분석 메타 — noteGen이 병합 */
@@ -178,7 +181,9 @@ function previewVariantIndex(slot: number): number | undefined {
 export async function POST(req: NextRequest) {
   try {
     const ua = req.headers.get("user-agent");
-    genLogCtx = { ua };
+    const maintSmoke = isMaintSmokeRequest(req);
+    const maintVia = maintSmoke ? MAINT_SMOKE_VIA : undefined;
+    genLogCtx = { ua, via: maintVia };
 
     // 비상 정지 — 결제/생성 전에 즉시 차단 (Gemini 과금 차단)
     if (
@@ -214,6 +219,7 @@ export async function POST(req: NextRequest) {
 
     genLogCtx = {
       ua,
+      via: maintVia,
       purposeId,
       orderPrefix: shortOrderPrefix(orderId),
       look: subjectLook,
@@ -560,9 +566,15 @@ export async function POST(req: NextRequest) {
       }
 
       // 과금 HTTP는 geminiBillGate만 — 티켓당 hardMax(기본 1)
+      // maint 자동은 ticketId "maint:" 접두 + via 기록 (사람 컷과 구분)
       const ticket = openGeminiTicket({
-        ticketId: `preview:${orderId}`,
+        ticketId: withMaintTicketPrefix(`preview:${orderId}`, maintSmoke),
         maxCalls: 1,
+        stage: "preview",
+        orderPrefix: billOrderPrefix(orderId),
+        purposeId,
+        actorHash: shortActorHash(readDeviceFp(req) || clientIp(req)),
+        via: maintVia,
       });
 
       const callLite = async (v: number | undefined): Promise<ModelResult> => {
@@ -662,8 +674,13 @@ export async function POST(req: NextRequest) {
     }
 
     const ticket = openGeminiTicket({
-      ticketId: `${stage}:${orderId}`,
+      ticketId: withMaintTicketPrefix(`${stage}:${orderId}`, maintSmoke),
       maxCalls: 1,
+      stage,
+      orderPrefix: billOrderPrefix(orderId),
+      purposeId,
+      actorHash: shortActorHash(readDeviceFp(req) || clientIp(req)),
+      via: maintVia,
     });
     const prompt = buildPrompt(purposeId, variantIndex, {
       look: subjectLook,
