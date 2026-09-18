@@ -1,6 +1,6 @@
 import type { ChangeEvent, RefObject } from "react";
 import ShootTips from "@/components/ShootTips";
-import SelfieFrameGuide from "@/components/make/SelfieFrameGuide";
+import SelfieCapture from "@/components/make/SelfieCapture";
 import InlineError from "@/components/make/InlineError";
 import ExtraPromptFields from "@/components/make/ExtraPromptFields";
 import {
@@ -29,6 +29,7 @@ type PurposeUploadStepProps = {
   inputRef: RefObject<HTMLInputElement | null>;
   onFile: (e: ChangeEvent<HTMLInputElement>) => void;
   processFile: (file: File) => void;
+  onClearSelfie: () => void;
   error: string | null;
   errorAt: string | null;
 };
@@ -50,6 +51,7 @@ export default function PurposeUploadStep({
   inputRef,
   onFile,
   processFile,
+  onClearSelfie,
   error,
   errorAt,
 }: PurposeUploadStepProps) {
@@ -86,28 +88,19 @@ export default function PurposeUploadStep({
         <div className="mt-3">
           <ShootTips compact />
         </div>
-        <div
-          className="mt-3 cursor-pointer rounded-2xl border border-dashed border-ink-300 bg-white/70 p-5 text-center"
-          onClick={() => inputRef.current?.click()}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            const f = e.dataTransfer.files?.[0];
-            if (f) processFile(f);
-          }}
-        >
-          <SelfieFrameGuide selfieUrl={selfie} />
-          {!selfie && (
-            <p className="mt-3 text-sm text-ink-500">클릭하거나 끌어다 놓기</p>
-          )}
-          <input
-            ref={inputRef as RefObject<HTMLInputElement>}
-            type="file"
-            accept="image/*"
-            capture="user"
-            className="hidden"
-            onChange={onFile}
+        <div className="mt-3 rounded-2xl border border-dashed border-ink-300 bg-white/70 p-5 text-center">
+          <SelfieCapture
+            selfie={selfie}
+            inputRef={inputRef}
+            onFile={onFile}
+            onCapture={processFile}
+            onClear={onClearSelfie}
           />
+          {!selfie && (
+            <p className="mt-3 text-sm text-ink-500">
+              탭해서 카메라로 찍거나, 끌어다 놓기
+            </p>
+          )}
         </div>
         <div className="mt-2 flex items-center justify-between gap-2">
           <p className="text-[11px] text-ink-300">

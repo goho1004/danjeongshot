@@ -229,6 +229,7 @@ export default function MakeStudio({ variant = "make" }: { variant?: MakeStudioV
           inputRef={state.inputRef}
           onFile={onFile}
           processFile={processFile}
+          onClearSelfie={() => state.setSelfie(null)}
           error={state.error}
           errorAt={state.errorAt}
         />
