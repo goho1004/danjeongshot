@@ -9,6 +9,10 @@
  * 회장 발주(기동속도+아티팩, 2026-09-18): 원일 go("cam")은 startCam()을 기다리지 않고 스테이지부터
  * 동기로 노출한다 — 우리는 mode="opening"을 클릭 즉시 세팅해 같은 체감을 만들고, video 자체만
  * 스트림 준비 전까지 투명 처리. face-guide 비네트·셔터/배지 비율도 원일 아티팩 이식.
+ * 회장 발주(스크롤 마무리, 2026-09-18): 촬영 후 배경 스크롤이 영구히 안 풀리던 회귀 수정 —
+ * 셔터 직후 selfie가 확정되면 렌더는 미리보기 타일로 넘어가지만 mode는 여전히 "live"로 남아
+ * mode만 보던 스크롤 잠금 effect가 풀리지 않았음. 잠금 키를 실제 렌더 조건과 동일한
+ * overlayOpen(=!selfie && mode가 live/opening)으로 통일.
  */
 import {
   type ChangeEvent,
@@ -125,9 +129,12 @@ export default function SelfieCapture({
     if (selfie) stopCam();
   }, [selfie, stopCam]);
 
-  // 풀스크린 촬영 오버레이(opening=대기 포함) 노출 중엔 배경 스크롤 잠금 + ESC로 뒤로
+  // 풀스크린 촬영 오버레이(opening=대기 포함) 노출 중엔 배경 스크롤 잠금 + ESC로 뒤로.
+  // 잠금 키는 아래 렌더 분기(`if (selfie) {…}` 가 `mode==="live"|"opening"` 분기보다 먼저 체크됨)와
+  // 반드시 동일해야 함 — selfie가 확정되면 mode와 무관하게 오버레이는 이미 화면에서 사라지므로.
+  const overlayOpen = !selfie && (mode === "live" || mode === "opening");
   useEffect(() => {
-    if (mode !== "live" && mode !== "opening") return;
+    if (!overlayOpen) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
@@ -138,7 +145,7 @@ export default function SelfieCapture({
       document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", onKey);
     };
-  }, [mode, handleBack]);
+  }, [overlayOpen, handleBack]);
 
   const flash = () => {
     setFlashOn(true);
