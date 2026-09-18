@@ -4,6 +4,8 @@
  * 원일 워커 cam 계약(검정 스테이지·원 가이드·sampleBright lum>=60·셔터·거울반전·플래시)
  * → 단정 ink/studio 톤으로 이식. 정본 D:\Memento_Wonil\admin\worker.html cam 구간 (읽기 전용).
  * 축: Studio 셀카 UX만 — 결제·생성 로직 없음. onCapture/onClear는 상위(processFile/setSelfie)로 위임.
+ * 회장 실사용 피드백(2026-09-18): 촬영 중(mode==="live")엔 작은 인라인 박스 대신 풀스크린 오버레이로
+ * 표시 + 셔터음 추가. selfie 확정 전까지는 뒤로/다시 찍기로 언제든 오버레이를 벗어날 수 있어야 함.
  */
 import {
   type ChangeEvent,
@@ -43,6 +45,7 @@ export default function SelfieCapture({
   const snapRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const brightTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   const stopCam = useCallback(() => {
     if (brightTimerRef.current) {
@@ -55,6 +58,12 @@ export default function SelfieCapture({
     }
     if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
+
+  const handleBack = useCallback(() => {
+    stopCam();
+    setMode("idle");
+    onClear();
+  }, [stopCam, onClear]);
 
   const sampleBright = useCallback(() => {
     const v = videoRef.current;
@@ -114,10 +123,60 @@ export default function SelfieCapture({
     if (selfie) stopCam();
   }, [selfie, stopCam]);
 
+  // 풀스크린 촬영 오버레이(mode==="live") 노출 중엔 배경 스크롤 잠금 + ESC로 뒤로
+  useEffect(() => {
+    if (mode !== "live") return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleBack();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [mode, handleBack]);
+
   const flash = () => {
     setFlashOn(true);
     setTimeout(() => setFlashOn(false), 120);
   };
+
+  // 셔터음(회장 피드백 신규) — 외부 음원 없이 Web Audio로 합성(라이선스 이슈 회피).
+  // 자동재생 차단/무음 기기 등으로 실패하면 진동 폴백만(시각 피드백은 flash()가 항상 담당).
+  const playShutterSound = useCallback(() => {
+    try {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (!AudioCtx) throw new Error("no-audio-context");
+      if (!audioCtxRef.current) audioCtxRef.current = new AudioCtx();
+      const ctx = audioCtxRef.current;
+      if (ctx.state === "suspended") void ctx.resume();
+      const blip = (at: number, f0: number, f1: number, dur: number, peak: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "square";
+        osc.frequency.setValueAtTime(f0, ctx.currentTime + at);
+        osc.frequency.exponentialRampToValueAtTime(f1, ctx.currentTime + at + dur);
+        gain.gain.setValueAtTime(peak, ctx.currentTime + at);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + at + dur);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(ctx.currentTime + at);
+        osc.stop(ctx.currentTime + at + dur + 0.01);
+      };
+      blip(0, 1900, 1100, 0.045, 0.25); // 셔터 클릭
+      blip(0.05, 1300, 500, 0.06, 0.2); // 미러 clack
+    } catch {
+      try {
+        navigator.vibrate?.(35);
+      } catch {
+        /* 폴백도 실패해도 촬영 자체는 계속 진행 */
+      }
+    }
+  }, []);
 
   const handleZoneClick = async () => {
     if (selfie || mode === "live") return;
@@ -144,6 +203,7 @@ export default function SelfieCapture({
     cx.scale(-1, 1);
     cx.drawImage(v, 0, 0);
     flash();
+    playShutterSound();
     cv.toBlob(
       (blob) => {
         if (!blob) {
@@ -166,12 +226,6 @@ export default function SelfieCapture({
   const handleRetake = () => {
     onClear();
     void startCam();
-  };
-
-  const handleBack = () => {
-    stopCam();
-    setMode("idle");
-    onClear();
   };
 
   const fileInput = (
@@ -218,6 +272,76 @@ export default function SelfieCapture({
     );
   }
 
+  // 촬영 중 — 회장 피드백: 인라인 작은 박스 ✗, 화면 꽉 채우는 풀스크린 팝업으로 표시
+  if (mode === "live") {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex flex-col bg-ink-950"
+        role="dialog"
+        aria-modal="true"
+        aria-label="셀카 촬영"
+      >
+        <div className="flex justify-end px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="rounded-full border border-white/35 bg-white/15 px-3 py-1.5 text-[12px] font-semibold text-white"
+          >
+            뒤로
+          </button>
+        </div>
+
+        <div className="flex flex-1 flex-col items-center justify-center px-4">
+          {/* 원형 스테이지 — 원일 .ap-cam .stage 계약, 크기는 뷰포트 기준으로 확대 */}
+          <div className="relative aspect-square w-[min(82vw,60vh)]">
+            <div className="absolute -inset-[4%] rounded-full border border-studio-soft/30" />
+            <div className="absolute inset-0 rounded-full border-2 border-dashed border-white/45" />
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              className="absolute inset-[5%] h-[90%] w-[90%] scale-x-[-1] rounded-full bg-white/5 object-cover"
+            />
+            {bright && (
+              <span
+                className={`absolute left-1/2 top-[-8%] -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-bold text-white ${
+                  bright.ok ? "bg-emerald-600/90" : "bg-red-500/90"
+                }`}
+              >
+                {bright.label}
+              </span>
+            )}
+          </div>
+
+          <p className="mt-6 text-center text-[15px] font-semibold text-white">
+            얼굴을 원 안에 맞춰 주세요
+          </p>
+          <p className="mt-1 text-center text-[12px] text-white/65">정면 · 어깨까지 · 밝게</p>
+        </div>
+
+        <div className="flex flex-col items-center pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-2">
+          <button
+            type="button"
+            onClick={handleShutter}
+            aria-label="셔터"
+            className="flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-white"
+          >
+            <span className="block h-12 w-12 rounded-full bg-white" />
+          </button>
+        </div>
+
+        <canvas ref={snapRef} hidden />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-white transition-opacity duration-150"
+          style={{ opacity: flashOn ? 0.85 : 0 }}
+        />
+        {fileInput}
+      </div>
+    );
+  }
+
+  // idle / unsupported — 촬영 시작 전 작은 진입 타일(상위 업로드 스텝 레이아웃 안에 인라인)
   return (
     <div
       className="relative mx-auto aspect-[3/4] w-full max-w-[220px] cursor-pointer overflow-hidden rounded-2xl bg-ink-950"
@@ -227,29 +351,10 @@ export default function SelfieCapture({
     >
       <div className="absolute inset-0 bg-gradient-to-b from-ink-900 to-ink-950" />
 
-      {/* 원형 스테이지 — 원일 .ap-cam .stage 계약 */}
       <div className="absolute left-1/2 top-[10%] aspect-square w-[68%] -translate-x-1/2">
         <div className="absolute -inset-[6%] rounded-full border border-studio-soft/30" />
         <div className="absolute inset-0 rounded-full border-2 border-dashed border-white/45" />
-        {mode === "live" && (
-          <video
-            ref={videoRef}
-            playsInline
-            muted
-            className="absolute inset-[6%] h-[88%] w-[88%] scale-x-[-1] rounded-full bg-white/5 object-cover"
-          />
-        )}
       </div>
-
-      {mode === "live" && bright && (
-        <span
-          className={`absolute left-1/2 top-[4%] -translate-x-1/2 rounded-full px-3 py-1.5 text-[12px] font-bold text-white ${
-            bright.ok ? "bg-emerald-600/90" : "bg-red-500/90"
-          }`}
-        >
-          {bright.label}
-        </span>
-      )}
 
       <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-ink-950/90 via-ink-950/40 to-transparent px-3 pb-3 pt-10">
         <p className="text-center text-[13px] font-semibold text-white">
@@ -258,27 +363,8 @@ export default function SelfieCapture({
             : "얼굴을 원 안에 맞춰 주세요"}
         </p>
         <p className="text-center text-[11px] text-white/65">정면 · 어깨까지 · 밝게</p>
-        {mode === "live" && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleShutter();
-            }}
-            aria-label="셔터"
-            className="mt-1 flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-white"
-          >
-            <span className="block h-10 w-10 rounded-full bg-white" />
-          </button>
-        )}
       </div>
 
-      <canvas ref={snapRef} hidden />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-white transition-opacity duration-150"
-        style={{ opacity: flashOn ? 0.85 : 0 }}
-      />
       {fileInput}
     </div>
   );
