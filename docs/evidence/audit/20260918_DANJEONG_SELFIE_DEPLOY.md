@@ -15,10 +15,12 @@
 
 | # | 기준 | 결과 |
 |---|------|------|
-| 1 | GitHub commit status (Vercel) | PASS — `gh api repos/goho1004/danjeongshot/commits/362f22f/status` → `state: success`, `description: "Deployment has completed"` |
-| 2 | `/make` 페이지 200 | PASS — `curl -sS -o - -w "HTTP_STATUS:%{http_code}" https://danjeongshot.vercel.app/make` → `200` |
-| 3 | `/make` 새 문구 존재 | PASS — 응답 본문에 "얼굴을 원 안에 맞춰 주세요" 포함 확인 |
-| 4 | 에러 마커 부재 | PASS — `Application error` / `__next_error__` 미검출 |
+| 1 | GitHub commit status (Vercel) | PASS — 앱 코드 배포(`362f22f`) `state: success`; 증거 문서 커밋으로 트리거된 후속 자동 재배포(`7aa265a`)도 `state: success` — 두 빌드 모두 확인 |
+| 2 | `/make` 페이지 200 | PASS — `curl -sS -o /dev/null -w "%{http_code}" https://danjeongshot.vercel.app/make` → `200` (두 배포 각각 재확인) |
+| 3 | `/make` 새 문구 존재 | PASS (정정 후 재검증 — 아래 메모) |
+| 4 | 에러 마커 부재 | PASS — `Application error` / `__next_error__` 미검출(2회 모두). `500` 문자열 1건 검출됐으나 문맥 확인 결과 전부 무관(`text-ink-500`, `font-weight:500`, Google Fonts `wght@…;500;…` 등 CSS/폰트 토큰) — 실제 5xx 아님 |
+
+**방법론 정정 메모(투명성 기록):** 최초 검증은 raw HTML을 curl로 받아 `grep -o "얼굴을 원 안에 맞춰 주세요" "$OUT" | head -1 && echo FOUND`로 확인했는데, 이 명령은 **셸 버그로 오탐(false positive)** 이었음 — 파이프의 종료코드는 마지막 명령(`head`)의 것이라 grep이 실패해도 `head`가 0을 반환해 항상 "FOUND"가 출력됨. 게다가 `/make`는 셀카 단계가 `BAILOUT_TO_CLIENT_SIDE_RENDERING`로 클라이언트 전용 렌더링되는 구조라 raw HTML엔 애초에 "로딩…" 폴백만 있고 새 문구는 들어있지 않음(구조상 당연 — 배포 성공 여부와 무관). 재검증: `/make`가 참조하는 공유 JS 청크(`972`·`859`·`662`·`641`·`117-...js`)를 직접 fetch하여 `641-47a80ceeab73b91d.js` 안에서 "얼굴을 원 안에 맞춰 주세요" 리터럴을 `grep -l`(파이프 없이 직접 종료코드 사용, 오탐 구조 아님)로 확인 → 실제 배포된 클라이언트 번들에 신규 카피 포함 확인, 진짜 PASS.
 
 **미검증(명시):** 실제 카메라 하드웨어·라이브 비디오·셔터 촬영 결과물의 프로덕션 환경 육안 확인은 헤드리스 세션 한계로 미실시. 코드 레벨 카메라 계약(밝기 임계값·거울반전·플래시 등)은 포팅 단계에서 이미 `20260918_DANJEONG_WONIL_SELFIE_PORT.md` §4에서 PASS 처리됨 — 이번 세션은 배포 자체(빌드·라우팅·정적 마크업 반영)만 검증. 사람의 모바일 실기 확인 권장.
 
@@ -41,8 +43,8 @@
 - In 4 (Section H — SHA·URL·롤백): 본 섹션
 - Out 위반: 없음 (§3)
 - branch: `feat/wonil-selfie-port` → `master`로 fast-forward
-- commit SHA: `362f22f74f69147a377ed249a6a92bdbc673272f` (`362f22f`) — 부모/이전 프로덕션 `8c60339`
-- 배포 URL: https://danjeongshot.vercel.app (Vercel 배포 상세: https://vercel.com/gracoa/danjeongshot/AvtkNSZkiwF9v53avZe3hejvjeGV)
+- commit SHA: 앱 코드 `362f22f74f69147a377ed249a6a92bdbc673272f`(`362f22f` = `d7cd61e` 포팅 코드 + 포팅 증거, diff 0으로 배포) — 부모/이전 프로덕션 `8c60339`. master 최종 HEAD는 `7aa265a`(본 증거 MD 자체를 커밋하며 발생한 후속 docs-only 재배포 — 앱 코드 diff 없음, 빌드도 `success`)
+- 배포 URL: https://danjeongshot.vercel.app (Vercel 배포 상세 `362f22f`: https://vercel.com/gracoa/danjeongshot/AvtkNSZkiwF9v53avZe3hejvjeGV · `7aa265a`는 동일 앱 코드의 후속 자동 재배포, GitHub commit status로 `success` 확인)
 - 롤백 한 줄: Vercel 대시보드 → 이전 프로덕션 배포(`8c60339`)를 **Promote to Production**(git 히스토리 불변, 즉시 복구) — 코드까지 되돌리려면 `git revert 362f22f d7cd61e` 후 push(정방향, force 불요); 브랜치 자체 폐기는 `git branch -D feat/wonil-selfie-port`(단, master는 이미 배포됐으므로 프로덕션 롤백엔 불충분 — 위 두 방법 중 하나 필요)
 - 막힘: 카메라 실기(라이브 비디오/셔터 결과물) 육안 확인은 이번에도 헤드리스 한계로 미실시(§2)
 
