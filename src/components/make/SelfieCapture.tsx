@@ -6,6 +6,9 @@
  * 축: Studio 셀카 UX만 — 결제·생성 로직 없음. onCapture/onClear는 상위(processFile/setSelfie)로 위임.
  * 회장 실사용 피드백(2026-09-18): 촬영 중(mode==="live")엔 작은 인라인 박스 대신 풀스크린 오버레이로
  * 표시 + 셔터음 추가. selfie 확정 전까지는 뒤로/다시 찍기로 언제든 오버레이를 벗어날 수 있어야 함.
+ * 회장 발주(기동속도+아티팩, 2026-09-18): 원일 go("cam")은 startCam()을 기다리지 않고 스테이지부터
+ * 동기로 노출한다 — 우리는 mode="opening"을 클릭 즉시 세팅해 같은 체감을 만들고, video 자체만
+ * 스트림 준비 전까지 투명 처리. face-guide 비네트·셔터/배지 비율도 원일 아티팩 이식.
  */
 import {
   type ChangeEvent,
@@ -17,7 +20,7 @@ import {
   useState,
 } from "react";
 
-type CamMode = "idle" | "live" | "unsupported";
+type CamMode = "idle" | "opening" | "live" | "unsupported";
 
 type SelfieCaptureProps = {
   selfie: string | null;
@@ -99,15 +102,14 @@ export default function SelfieCapture({
         audio: false,
       });
       streamRef.current = stream;
-      setMode("live");
-      requestAnimationFrame(() => {
-        const v = videoRef.current;
-        if (!v) return;
+      const v = videoRef.current;
+      if (v) {
         v.srcObject = stream;
         void v.play().catch(() => {});
-        brightTimerRef.current = setInterval(sampleBright, 900);
-        sampleBright();
-      });
+      }
+      setMode("live");
+      brightTimerRef.current = setInterval(sampleBright, 900);
+      sampleBright();
       return true;
     } catch {
       setMode("unsupported");
@@ -123,9 +125,9 @@ export default function SelfieCapture({
     if (selfie) stopCam();
   }, [selfie, stopCam]);
 
-  // 풀스크린 촬영 오버레이(mode==="live") 노출 중엔 배경 스크롤 잠금 + ESC로 뒤로
+  // 풀스크린 촬영 오버레이(opening=대기 포함) 노출 중엔 배경 스크롤 잠금 + ESC로 뒤로
   useEffect(() => {
-    if (mode !== "live") return;
+    if (mode !== "live" && mode !== "opening") return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
@@ -178,14 +180,17 @@ export default function SelfieCapture({
     }
   }, []);
 
-  const handleZoneClick = async () => {
-    if (selfie || mode === "live") return;
+  const handleZoneClick = () => {
+    if (selfie || mode === "live" || mode === "opening") return;
     if (mode === "unsupported") {
       inputRef.current?.click();
       return;
     }
-    const ok = await startCam();
-    if (!ok) inputRef.current?.click(); // 권한 거부/미지원 → 앨범 폴백
+    // 원일 계약: go("cam")이 startCam() 완료를 기다리지 않고 스테이지부터 동기로 노출 — 그래서 "바로" 느껴짐.
+    setMode("opening");
+    void startCam().then((ok) => {
+      if (!ok) inputRef.current?.click(); // 권한 거부/미지원 → 앨범 폴백
+    });
   };
 
   const handleShutter = () => {
@@ -225,6 +230,7 @@ export default function SelfieCapture({
 
   const handleRetake = () => {
     onClear();
+    setMode("opening");
     void startCam();
   };
 
@@ -272,8 +278,10 @@ export default function SelfieCapture({
     );
   }
 
-  // 촬영 중 — 회장 피드백: 인라인 작은 박스 ✗, 화면 꽉 채우는 풀스크린 팝업으로 표시
-  if (mode === "live") {
+  // 촬영 중(opening=클릭 직후 스트림 대기, live=스트림 준비 완료) — 회장 피드백: 인라인 작은 박스 ✗,
+  // 화면 꽉 채우는 풀스크린 팝업으로 표시. opening에서도 스테이지 전체를 이미 노출해 원일급 즉시성 확보.
+  if (mode === "live" || mode === "opening") {
+    const camReady = mode === "live";
     return (
       <div
         className="fixed inset-0 z-50 flex flex-col bg-ink-950"
@@ -300,11 +308,22 @@ export default function SelfieCapture({
               ref={videoRef}
               playsInline
               muted
-              className="absolute inset-[5%] h-[90%] w-[90%] scale-x-[-1] rounded-full bg-white/5 object-cover"
+              className={`absolute inset-[5%] h-[90%] w-[90%] scale-x-[-1] rounded-full bg-white/5 object-cover transition-opacity duration-200 ${
+                camReady ? "opacity-100" : "opacity-0"
+              }`}
+            />
+            {/* 원일 .face-guide 계약(타원 비네트) 이식 — 시선을 얼굴 존으로 유도하는 스튜디오 조명감 */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-[5%] rounded-full"
+              style={{
+                background:
+                  "radial-gradient(ellipse 40% 48% at 50% 42%, transparent 62%, rgba(3,8,16,0.55) 63%)",
+              }}
             />
             {bright && (
               <span
-                className={`absolute left-1/2 top-[-8%] -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-bold text-white ${
+                className={`absolute left-1/2 top-[-8%] -translate-x-1/2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] font-bold text-white shadow-lg shadow-black/30 ${
                   bright.ok ? "bg-emerald-600/90" : "bg-red-500/90"
                 }`}
               >
@@ -313,10 +332,10 @@ export default function SelfieCapture({
             )}
           </div>
 
-          <p className="mt-6 text-center text-[15px] font-semibold text-white">
+          <p className="mt-6 text-center text-[19px] font-extrabold text-white">
             얼굴을 원 안에 맞춰 주세요
           </p>
-          <p className="mt-1 text-center text-[12px] text-white/65">정면 · 어깨까지 · 밝게</p>
+          <p className="mt-1 text-center text-[13px] text-white/65">정면 · 어깨까지 · 밝게</p>
         </div>
 
         <div className="flex flex-col items-center pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-2">
@@ -324,9 +343,9 @@ export default function SelfieCapture({
             type="button"
             onClick={handleShutter}
             aria-label="셔터"
-            className="flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-white"
+            className="flex h-20 w-20 items-center justify-center rounded-full border-[4px] border-white shadow-lg shadow-black/40"
           >
-            <span className="block h-12 w-12 rounded-full bg-white" />
+            <span className="block h-14 w-14 rounded-full bg-white" />
           </button>
         </div>
 
