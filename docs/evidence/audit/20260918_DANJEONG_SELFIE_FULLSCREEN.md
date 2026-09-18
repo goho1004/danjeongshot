@@ -2,7 +2,7 @@
 
 > 발주: `docs/handoff/CLAUDE_DANJEONG_SELFIE_FULLSCREEN_v1.md` (회장 2026-09-18 18:07 · Cursor Gate)
 > 시공: Claude · 기준 `master(9534551)` (형제 세션이 이미 원일 포팅 배포·검증방법론 정정까지 끝내둔 상태) → 브랜치 `feat/wonil-selfie-port`에 이어서 커밋 `cfabbce` → master fast-forward
-> Out 준수: 결제·`/api/generate`·billGate·claim·원일 코드 미변경(diff는 `src/components/make/SelfieCapture.tsx` 1개 파일만) · 원일 저장소 미접근(이번 세션은 읽기도 안 함) · 비밀 미노출 · force-push 없음(순수 fast-forward)
+> Out 준수: 결제·`/api/generate`·billGate·claim·원일 코드 미변경(diff는 `src/components/make/SelfieCapture.tsx` 1개 파일만) · 원일 저장소 쓰기 없음(정본 확인용 read-only grep 1회만, 아래 §4) · 비밀 미노출 · force-push 없음(순수 fast-forward)
 
 ## 회장 피드백 3항 (그대로)
 
@@ -50,7 +50,7 @@
 | 금지 항목 | 확인 |
 |---|---|
 | 결제·generate·billGate·claim 로직 변경 | 미해당 — 커밋에 포함된 파일은 `SelfieCapture.tsx` 1개뿐(커밋 전 `git diff --cached --stat`로 확인) |
-| 원일 코드 수정 | 미해당 — `D:\Memento_Wonil` 쓰기 없음(이번 세션은 읽기도 하지 않음 — 원일 cam 계약은 이전 포팅 세션이 이미 이식해 둔 `SelfieCapture.tsx`의 기존 주석/구조를 그대로 재사용) |
+| 원일 코드 수정 | 미해당 — `D:\Memento_Wonil` 쓰기 없음. 읽기는 1회 있었음: `worker.html`의 cam 관련 CSS 셀렉터(`.ap-cam .stage` 등)를 read-only grep으로 확인 — 원일 자체 스테이지가 `244px` 고정(풀스크린 아님)임을 알게 되어, "원일처럼"이 크기가 아니라 어두운 배경·원 가이드·셔터 등 시각 계약을 뜻함을 확정하고 회장의 명시적 "풀스크린" 요구를 그 크기 제약 없이 그대로 따름. 정본을 읽기 전용으로 참조하는 것은 두 선행 증거 MD(`20260918_DANJEONG_WONIL_SELFIE_PORT.md`)에서도 이미 동일하게 허용·기록된 패턴 |
 | 큰 외부 음원 라이선스 문제 | 미해당 — 셔터음은 Web Audio 오실레이터로 즉석 합성, 외부 에셋·라이선스 없음 |
 | 비밀 커밋 | 미해당 — 본 문서·커밋에 시크릿 없음 |
 | 회장 승인 없는 force-push·파괴적 작업 | 미해당 — 순수 fast-forward(`9534551..cfabbce`), 히스토리 재작성 없음. 이번 배포 자체가 회장 발주서(승인) 대상 행위 |
