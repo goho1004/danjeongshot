@@ -17,6 +17,7 @@
     "maint:watermark": "node scripts/maint/index.mjs watermark",
     "maint:flow-e2e": "node scripts/maint/index.mjs flow-e2e",
     "maint:payment-integrity": "node scripts/maint/index.mjs payment-integrity",
+    "maint:confirm-race": "node scripts/confirm-race.mjs",
     "maint:safari-multipart": "node scripts/maint/index.mjs safari-multipart",
     "maint:gate": "node scripts/maint/index.mjs gate",
     "maint:gate:notify": "node scripts/maint/gate-notify.mjs",
@@ -26,7 +27,9 @@
     "watchdog:cday:notify": "node scripts/watchdog-cday.mjs --notify",
     "watchdog:logs": "node scripts/maint/log-watchdog.mjs",
     "watchdog:logs:notify": "node scripts/maint/log-watchdog.mjs --notify",
-    "launch:day": "node -e \"console.log('C-Day playbook: docs/LAUNCH_DAY_PLAYBOOK.md\\nSkill: danjeongshot-launch\\nRun: npm run watchdog:cday')\""
+    "launch:day": "node -e \"console.log('C-Day playbook: docs/LAUNCH_DAY_PLAYBOOK.md\\nSkill: danjeongshot-launch\\nRun: npm run watchdog:cday')\"",
+    "test": "vitest run",
+    "test:payments": "vitest run src/lib/payments"
   },
   "dependencies": {
     "@google/genai": "^2.12.0",
@@ -46,6 +49,7 @@
     "playwright": "^1.49.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   }
 }

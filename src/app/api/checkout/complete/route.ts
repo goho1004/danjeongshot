@@ -11,9 +11,13 @@ import { isMaintSmokeRequest } from "@/lib/maintSmoke";
 /**
  * 샌드박스 즉시 결제 완료. toss 는 /api/checkout/confirm 사용.
  * 실결제(toss) 모드에서는 무료로 paid를 부여할 수 없음 — maint smoke만 시크릿 헤더로 통과.
+ *
+ * production 에서는 모드와 무관하게 막는다: TOSS_* env 가 빠져 getPaymentMode() 가
+ * sandbox 로 떨어지면 이 라우트가 공짜 paid 를 나눠 주기 때문(감사 P1-7).
  */
 export async function POST(req: NextRequest) {
-  if (getPaymentMode() === "toss" && !isMaintSmokeRequest(req)) {
+  const smoke = isMaintSmokeRequest(req);
+  if (!smoke && (getPaymentMode() === "toss" || process.env.NODE_ENV === "production")) {
     return NextResponse.json(
       {
         error: "실결제 모드입니다. 토스 결제 승인 절차를 이용해 주세요.",

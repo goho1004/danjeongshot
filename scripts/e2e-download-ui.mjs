@@ -114,6 +114,13 @@ async function main() {
   await page.waitForTimeout(1500);
   if (maybeDl) downloads.push(maybeDl.suggestedFilename());
 
+  // 받기 시트가 「무엇을 받으시겠어요?」로 열리면 단정 사진을 고른다 (액션 → 팝업 → 선택)
+  const pickClean = page.getByRole("button", { name: /단정 사진/ }).first();
+  if ((await pickClean.count()) > 0 && (await pickClean.isVisible())) {
+    await pickClean.click();
+    await page.waitForTimeout(600);
+  }
+
   // 모달 「저장」이 있으면 한 번 더
   const modalSave = page.getByRole("button", { name: /^저장$|저장하기/ });
   if ((await modalSave.count()) > 0 && (await modalSave.first().isVisible())) {

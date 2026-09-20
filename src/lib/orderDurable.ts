@@ -141,7 +141,21 @@ export async function getOrderDurable(
 }
 
 /**
- * 결제 반영 — claim으로 이중 markPaid 경합 완화 후 Redis 저장.
+ * Upstash 자체가 없는 로컬·스모크에서만 메모리 claim 허용.
+ * production 의 Upstash 오류(null)는 fail-closed — 이중 markPaid 는 파트너 원장에
+ * 커미션을 두 번 적는다(`markPaid` 의 `!wasPaid` 분기).
+ */
+function memoryClaimAllowed(): boolean {
+  return (
+    mockClaimBypass() ||
+    (!hasUpstash() && process.env.NODE_ENV !== "production")
+  );
+}
+
+/**
+ * 결제 반영 — claim으로 이중 markPaid 경합 차단 후 Redis 저장.
+ * 멱등: 이미 paid 면 그대로 돌려준다. 선점당했는데 아직 안 보이면 undefined —
+ * 호출측(결제 코어)이 재시도해서 자가치유한다.
  */
 export async function markPaidDurable(
   orderId: string,
@@ -168,7 +182,10 @@ export async function markPaidDurable(
     await new Promise((r) => setTimeout(r, 80));
     const third = await loadOrderById(orderId);
     if (third?.paid) return third;
+    // 아직 안 보임 — 여기서 markPaid 하면 원장 이중 기재. 재시도에 맡긴다.
+    return undefined;
   }
+  if (claim === null && !memoryClaimAllowed()) return undefined;
 
   const paid = markPaid(orderId, ticket || base.unlockToken);
   if (paid) await persistOrder(paid);

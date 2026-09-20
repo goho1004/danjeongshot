@@ -7,6 +7,7 @@ import {
   loadCheckoutSession,
   persistRestorePaid,
 } from "@/lib/sessionHeavy";
+import { confirmOnce } from "@/lib/payments/confirmOnce";
 
 const SESSION_KEY = "djs_checkout_session";
 
@@ -14,8 +15,11 @@ function csBlock(code: string | null, orderId: string | null) {
   const show =
     code === "ORDER_TICKET_REQUIRED" ||
     code === "ORDER_NOT_FOUND" ||
-    code === "MARK_PAID_FAILED" ||
-    code === "AMOUNT_MISMATCH";
+    code === "AMOUNT_MISMATCH" ||
+    // 결제 코어가 돌려주는 「사람이 봐야 하는」 실패들
+    code === "POST_PAID_FAILED" ||
+    code === "PAYMENT_KEY_MISMATCH" ||
+    code === "TOSS_VERIFY_FAILED";
   if (!show) return null;
   return (
     <div className="mt-6 rounded-lg border border-ink-100 bg-ink-50/80 px-4 py-3 text-left text-xs leading-relaxed text-ink-600">
@@ -60,9 +64,11 @@ function PaymentSuccessInner() {
       return;
     }
 
+    let cancelled = false;
     (async () => {
       try {
         const saved = await loadCheckoutSession(SESSION_KEY);
+        if (cancelled) return;
         if (saved && saved.orderId !== orderId) {
           setErr("주문 정보가 맞지 않습니다. 고객센터로 문의해 주세요.");
           setErrCode("ORDER_MISMATCH");
@@ -70,19 +76,18 @@ function PaymentSuccessInner() {
           return;
         }
 
-        const res = await fetch("/api/checkout/confirm", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            paymentKey,
-            orderId,
-            amount: Number(amount),
-            orderTicket: saved?.orderTicket || "",
-          }),
+        // 같은 (orderId, paymentKey) 승인은 한 번만 나간다 — StrictMode 이중 실행·리렌더 방어
+        const { ok, data } = await confirmOnce({
+          paymentKey,
+          orderId,
+          amount: Number(amount),
+          orderTicket: saved?.orderTicket || "",
         });
-        const data = await res.json();
-        if (!res.ok) {
-          setErr(data.error || "결제 승인에 실패했습니다.");
+        if (cancelled) return;
+        if (!ok) {
+          setErr(
+            typeof data.error === "string" ? data.error : "결제 승인에 실패했습니다."
+          );
           setErrCode(typeof data.code === "string" ? data.code : "CONFIRM_FAILED");
           setErrOrderId(orderId);
           return;
@@ -91,8 +96,8 @@ function PaymentSuccessInner() {
         const restore = {
           v: 2,
           paid: true,
-          orderId: data.orderId as string,
-          unlockToken: data.unlockToken as string,
+          orderId: String(data.orderId ?? orderId),
+          unlockToken: String(data.unlockToken ?? ""),
           orderTicket: saved?.orderTicket || data.unlockToken,
           amountKrw: data.amountKrw,
           packId: data.packId,
@@ -115,11 +120,15 @@ function PaymentSuccessInner() {
         const sid = encodeURIComponent(String(data.orderId || orderId));
         router.replace(`/result?session=${sid}`);
       } catch {
+        if (cancelled) return;
         setErr("결제 확인 중 오류가 발생했습니다.");
         setErrCode("CONFIRM_EXCEPTION");
         setErrOrderId(orderId);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [params, router]);
 
   return (

@@ -134,6 +134,12 @@ export async function kvSetNx(
   return false;
 }
 
+/** true = 삭제 시도가 저장소까지 닿음 (없던 키도 true) · false = 저장소 없음/오류 */
+export async function kvDel(key: string): Promise<boolean> {
+  const r = await runCommand(["DEL", key]);
+  return r.ok;
+}
+
 export async function kvLpush(key: string, value: string): Promise<boolean> {
   const r = await runCommand(["LPUSH", key, value]);
   if (!r.ok) {
